@@ -96,9 +96,8 @@ Developers can propose code, tests and CI configuration in PRs. Jamie or the rel
 account owner handles repository secrets, protected settings, paid services and account
 access. Do not make administrative access a hidden prerequisite of a UI task.
 
-Jamie should review this starter with one developer and merge it through the team's
-normal review process before developers build on it. The GitHub tickets have been
-revised for these placeholders and interfaces; confirm the starter is merged and your
-checkout includes it before claiming dependent work. The two-week commitment still
+The starter is merged into `main`. The GitHub tickets have been revised for these
+placeholders and interfaces; confirm your checkout includes the starter and runs before
+claiming dependent work. The two-week commitment still
 needs a capacity/dependency check. Eight people can start different pieces, but they
 cannot independently certify the complete product before integration.
