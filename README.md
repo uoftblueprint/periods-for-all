@@ -11,7 +11,7 @@ npm ci
 npm run web --workspace=mobile
 ```
 
-Open the local address printed in the terminal. The starting page links to login,
+Open the web address printed in the terminal (http://localhost:8081) in your browser. The starting page links to login,
 settings, home, and a component playground. **No Docker, Supabase account or environment
 variables are needed for these previews.** They use fake accounts and temporary state.
 
