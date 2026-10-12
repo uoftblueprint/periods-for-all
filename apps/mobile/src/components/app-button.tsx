@@ -2,7 +2,18 @@ import { Text, Pressable, View } from 'react-native';
 import { Colors, Spacing } from '../constants/theme';
 import type { AppButtonProps } from '../foundation/contracts';
 
-export default function AppButton({ label, onPress, disabled = false, busy = false }: AppButtonProps) {
+/**
+ * A simple button component that can be used throughout the app. It supports a label, onPress handler, disabled state, and busy state.
+ * 
+ * @components
+ * @param {AppButtonProps} props - The properties for the button component, including label, onPress handler, disabled state, and busy state.
+ * @param {string} props.label - The text label for the button.
+ * @param {() => void} props.onPress - The function to call when the button is pressed.
+ * @param {boolean} [props.disabled=false] - Whether the button is disabled. Defaults to false.
+ * @param {boolean} [props.busy=false] - Whether the button is in a busy state. Defaults to false.
+ * @returns A button component that can be used throughout the app.
+ */
+export function AppButton({ label, onPress, disabled = false, busy = false }: AppButtonProps) {
     return (
         <View style={ { backgroundColor: Colors.light.background, padding: Spacing.four } }>
             <Pressable 
@@ -27,3 +38,5 @@ export default function AppButton({ label, onPress, disabled = false, busy = fal
         </View>
     )
 }
+
+export default AppButton;
