@@ -35,7 +35,7 @@ Open the local web address shown by Expo. An iPhone or iPad simulator may be use
 - [ ] No Supabase account, environment variables, or Docker setup is required for
   this demo.
 - [ ] All features work correctly to their description
-- [ ] All features have appropriate accessibility labels, roles, hints, and states
+- [ ] All features have accessibility labels, roles, hints, and states where appropriate
 
 ## Demo success criteria
 
