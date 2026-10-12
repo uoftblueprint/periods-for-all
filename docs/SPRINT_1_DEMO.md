@@ -34,6 +34,8 @@ Open the local web address shown by Expo. An iPhone or iPad simulator may be use
 - [ ] The home screen is a placeholder and is intentionally reachable without login.
 - [ ] No Supabase account, environment variables, or Docker setup is required for
   this demo.
+- [ ] All features work correctly to their description
+- [ ] All features have appropriate accessibility labels, roles, hints, and states
 
 ## Demo success criteria
 
