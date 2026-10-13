@@ -30,7 +30,7 @@ export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
     textSecondary: '#B0B4BA',
   },
   highContrast: {
-    // Temporary high-contrast palette for internal preview. 
+    // temporary high-contrast palette for internal preview. 
     text: '#000000',
     background: '#FFFFFF',
     backgroundElement: '#E6E6E6',
