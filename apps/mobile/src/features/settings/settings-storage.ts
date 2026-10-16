@@ -1,4 +1,7 @@
-import {Settings} from '../../foundation/contracts';
+import type {Settings} from '@/foundation/contracts';
+import 'expo-sqlite/localStorage/install';
+
+const SETTINGS_KEY = 'accessibility-settings'
 
 // check the validity of a settings
 function isValidSetting(settings: unknown): settings is Settings{
@@ -44,9 +47,28 @@ function isValidSetting(settings: unknown): settings is Settings{
 }
 
 export async function loadSettings(): Promise<Settings|null>{
-    return null;
+    const settings = localStorage.getItem(SETTINGS_KEY);
+
+    if(settings === null){
+        return null;
+    }
+
+    let parsed: unknown;
+    try{
+        parsed = JSON.parse(settings);
+
+    }catch{
+        throw new Error("Invalid settings");
+    }
+
+    if(!isValidSetting(parsed)){ // check if it's format/fields are valid
+        throw new Error("Invalid settings");
+    }
+
+    return parsed;
 }
 
 export async function saveSettings(settings: Settings): Promise<void>{
-    return;
+    const serialized = JSON.stringify(settings);
+    localStorage.setItem(SETTINGS_KEY, serialized);
 }
