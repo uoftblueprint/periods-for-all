@@ -55,6 +55,7 @@
       "<rootDir>/tests/**/*.test.tsx"
     ],
     "moduleNameMapper": {
+      "\\.css$": "<rootDir>/tests/style-mock.js",
       "^@/(.*)$": "<rootDir>/src/$1"
     }
   },
