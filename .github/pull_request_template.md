@@ -1,7 +1,7 @@
 ## Linked issue
 
 <!-- Link the related ticket. Use "Closes #" only if this PR completes the entire ticket. Use "Related to #" for partial work. -->
-Related to #
+- Related to #
 
 ## What changed
 
