@@ -1,7 +1,7 @@
 ## Linked issue
 
-<!-- Which ticket does this close? e.g. Closes #12 -->
-Closes #
+<!-- Link the related ticket. Use "Closes #" only if this PR completes the entire ticket. Use "Related to #" for partial work. -->
+Related to #
 
 ## What changed
 
