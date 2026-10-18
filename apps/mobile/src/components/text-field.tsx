@@ -26,9 +26,16 @@ export function TextField({ label, value, onChangeText, error, secureTextEntry, 
             >
                 {label}
             </Text>
-            <TextInput
+            <TextInput style={{
+                borderWidth: 1,
+                borderColor: error ? 'red' : 'gray',
+                padding: Spacing.one,
+                borderRadius: 4,
+            }}
                 placeholder={`Enter ${label.toLowerCase()}`}
                 onChangeText={onChangeText}
+                autoCorrect={value.toLowerCase() === 'email' || value.toLowerCase() === 'password' ? false : true}
+                autoCapitalize={value.toLowerCase() === 'email' || value.toLowerCase() === 'password' ? 'none' : 'sentences'}
                 value={value}
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
