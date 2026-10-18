@@ -54,7 +54,6 @@ export function LoginScreen(props: LoginScreenProps) {
     }
 
     setError(null)
-    console.log("Validation passed!");
 
     //actually authenticating
     setLoading(true); // to disable button and show loading spinner
@@ -90,9 +89,9 @@ export function LoginScreen(props: LoginScreenProps) {
       style={styles.input} editable={!loading}
       accessibilityLabel="Password"
       />
-    {error && <Text style={styles.error}>{error}</Text>}
+    {error && <Text style={styles.error} accessibilityLiveRegion="polite" accessibilityRole="alert">{error}</Text>}
     {loading && <ActivityIndicator size="small" color="purple" style={styles.spinner} accessibilityLabel="Signing in"/>}
-    {result && <Text style={styles.error}>{result}</Text>} 
+    {result && <Text style={styles.error} accessibilityLiveRegion="polite" accessibilityRole="alert">{result}</Text>} 
     <Button title={loading ? "Logging in..." : "Login"} onPress={handleLogin} disabled={loading} accessibilityLabel="Login button"/>
   </View>
 }
