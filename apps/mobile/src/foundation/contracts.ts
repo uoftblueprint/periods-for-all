@@ -45,4 +45,7 @@ export type TextFieldProps = {
   error?: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address';
+  editable?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCorrect?: boolean;
 };

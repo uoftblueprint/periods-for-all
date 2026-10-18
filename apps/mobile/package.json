@@ -41,7 +41,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/demo-auth.test.mjs"
+    "test": "node --experimental-strip-types --test tests/demo-auth.test.mjs tests/settings-helpers.test.mjs tests/supabase-auth-adapter.test.mjs"
   },
   "private": true
 }

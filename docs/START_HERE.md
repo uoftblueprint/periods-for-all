@@ -6,9 +6,9 @@ No new packages are required. Run the commands in the [README](../README.md).
 ## What is here
 
 - `/`: links to each independent preview.
-- `/login`: mounts `LoginScreen` with a fake `signIn` function.
+- `/login`: shows `LoginScreen` using the shared sign-in service.
 - `/settings`: mounts `SettingsScreen` with editable, temporary state.
-- `/home`: a placeholder destination, deliberately accessible without login.
+- `/home`: a development home screen that requires sign-in.
 - `/playground`: a working example of fake success/error responses, and space to try a component.
 
 These routes are available only in development. Fake accounts are not authentication,
@@ -50,14 +50,14 @@ controls afterward. The real adapter should return a safe message for expected
 failures; the UI should also recover if a call unexpectedly throws.
 
 The demo accepts only `demo@example.com` / `demo-only`. Anything else returns an error.
-It makes no network calls and retains no password. Each preview owns its own demo
-service; leaving/reloading can reset it. This is deliberately not shared app login.
+It makes no network calls and retains no password. Login and home share the demo
+session until reload. Each component preview has its own demo service.
 
 **Auth service:** `getUser()` returns a user or null. `subscribe(listener)` observes
 future changes and returns a function that stops listening. `signOut()` clears the
-user. The real adapter implements the same interface; the application owner later
-creates ONE shared instance, handles initial loading/session changes, and protects
-routes. Direct access to `/home` is currently a preview feature, not a security control.
+user. The real adapter implements the same interface. The root layout shares one
+service across login and home, checks the session on startup, and updates routes
+when it changes. `/home` requires sign-in. These routes remain development-only.
 
 **Settings:** Controls receive `settings` and call
 `onChange({ ...settings, textSize: 'large' })` (or update another field).
