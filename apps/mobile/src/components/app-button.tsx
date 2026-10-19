@@ -15,27 +15,25 @@ import type { AppButtonProps } from '../foundation/contracts';
  */
 export function AppButton({ label, onPress, disabled = false, busy = false }: AppButtonProps) {
     return (
-        <View style={ { backgroundColor: Colors.light.background, padding: Spacing.four } }>
-            <Pressable 
-                onPress={onPress} 
-                disabled={disabled || busy} 
-                accessibilityRole="button" 
-                accessibilityLabel={label} 
-                accessibilityState={{disabled: disabled || busy, busy}} 
-                style={({ pressed }) => [{
-                    minHeight: 44,
-                    minWidth: 44,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    paddingHorizontal: Spacing.two,
-                    paddingVertical: Spacing.two,
-                    borderRadius: Spacing.one,
-                    backgroundColor: (disabled || busy || !pressed) ? Colors.light.backgroundElement : Colors.light.backgroundSelected,
-                    padding: Spacing.two
-            }]}>
-                    <Text>{label}</Text>
-            </Pressable>
-        </View>
+        <Pressable 
+            onPress={onPress} 
+            disabled={disabled || busy} 
+            accessibilityRole="button" 
+            accessibilityLabel={label} 
+            accessibilityState={{disabled: disabled || busy, busy}} 
+            style={({ pressed }) => [{
+                minHeight: 44,
+                minWidth: 44,
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingHorizontal: Spacing.two,
+                paddingVertical: Spacing.two,
+                borderRadius: Spacing.one,
+                opacity: (disabled || busy || pressed) ? 0.5 : 1,
+                padding: Spacing.two
+        }]}>
+                <Text>{label}</Text>
+        </Pressable>
     )
 }
 
