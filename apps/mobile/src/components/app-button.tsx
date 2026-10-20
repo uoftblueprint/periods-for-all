@@ -29,7 +29,7 @@ export function AppButton({ label, onPress, disabled = false, busy = false }: Ap
                 paddingHorizontal: Spacing.two,
                 paddingVertical: Spacing.two,
                 borderRadius: Spacing.one,
-                opacity: (disabled || busy || pressed) ? 0.5 : 1,
+                opacity: disabled || busy ? 0.5 : pressed ? 0.75 : 1,
                 padding: Spacing.two
         }]}>
                 <Text>{label}</Text>
