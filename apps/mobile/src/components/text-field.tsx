@@ -34,8 +34,8 @@ export function TextField({ label, value, onChangeText, error, secureTextEntry, 
             }}
                 placeholder={`Enter ${label.toLowerCase()}`}
                 onChangeText={onChangeText}
-                autoCorrect={value.toLowerCase() === 'email' || value.toLowerCase() === 'password' ? false : true}
-                autoCapitalize={value.toLowerCase() === 'email' || value.toLowerCase() === 'password' ? 'none' : 'sentences'}
+                autoCorrect={value.toLowerCase() === 'email-address' || secureTextEntry ? false : true}
+                autoCapitalize={value.toLowerCase() === 'email-address' || secureTextEntry ? 'none' : 'sentences'}
                 value={value}
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
