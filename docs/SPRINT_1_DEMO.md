@@ -23,7 +23,6 @@ for login, settings, and component work. This should lay the foundation for futu
 
 ## Demo success criteria
 
-- **No actual credential setups with supabase or environment variables are used in the demo**
-- Type checking and the fake-auth tests pass.
+- Real test-account logins are used for the checklist, and mock-preview checks are kept separate
 - Each preview route opens independently.
 - All features are examined and pass both basic and accessibility tests (voiceovers, text size changes, usability)
