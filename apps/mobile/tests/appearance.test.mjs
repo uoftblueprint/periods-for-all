@@ -20,10 +20,22 @@ test('reduce motion is passed through unchanged', () => {
   assert.equal(getAppearance({ ...base, reduceMotion: true }).reduceMotion, true);
 });
 
-test('settings fields map independently', () => {
-  const result = getAppearance({ textSize: 'large', colorScheme: 'dark', reduceMotion: true });
-  assert.deepEqual(result, { colors: Colors.dark, fontScale: 1.25, reduceMotion: true });
-});
+for (const textSize of ['standard', 'large']) {
+  for (const colorScheme of ['light', 'dark']) {
+    for (const reduceMotion of [false, true]) {
+      test(`appearance preserves frozen settings: ${textSize}, ${colorScheme}, reduceMotion=${reduceMotion}`, () => {
+        const settings = Object.freeze({ textSize, colorScheme, reduceMotion });
+
+        assert.deepEqual(getAppearance(settings), {
+          colors: Colors[colorScheme],
+          fontScale: textSize === 'large' ? 1.25 : 1,
+          reduceMotion,
+        });
+        assert.deepEqual(settings, { textSize, colorScheme, reduceMotion });
+      });
+    }
+  }
+}
 
 // WCAG 2.x relative luminance and contrast ratio.
 function luminance(hex) {
