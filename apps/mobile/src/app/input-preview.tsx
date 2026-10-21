@@ -21,7 +21,7 @@ export default function InputPreview() {
             />
 
             {/* Password field */}
-            
+
             <TextField
                 label="Password"
                 value={password}
@@ -32,6 +32,6 @@ export default function InputPreview() {
                     : undefined}
                 />
             </>
-            
+
     );
 }
