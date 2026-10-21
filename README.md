@@ -11,7 +11,7 @@ npm ci
 npm run web --workspace=mobile
 ```
 
-Open the local address printed in the terminal. The starting page links to login,
+Open the web address printed in the terminal (http://localhost:8081) in your browser. The starting page links to login,
 settings, home, and a component playground. **No Docker, Supabase account or environment
 variables are needed for these previews.** They use fake accounts and temporary state.
 
@@ -61,13 +61,27 @@ Stop the stack with `npx supabase stop`. A hosted project in Canada (`ca-central
 
 `apps/mobile/app.json` sets `ios.supportsTablet` and allows rotation, so iPad runs the app at full size instead of a scaled iPhone layout.
 
-## Run
+## Run on IOS Simulator
 
-Use Node 22 (`nvm use 22`).
+The app runs on Expo Go on the IOS Simulator.
+
+### Requirements
+
+- A Mac. The IOS Simulator is not available on Windows or Linux; use `npm run web` instead.
+- Xcode, with an IOS Simulator runtime installed (Xcode → Settings → Components).
+  Open Xcode once after installing it to accept the license.
+- Node 22.6 or newer. If you use nvm, `nvm use` selects the version in `.nvmrc`.
 
 ```bash
 cd apps/mobile
 npm run ios
 ```
+The first run installs Expo Go on the simulator and opens the app. To pick a different
+device, press `shift+i` in the Expo terminal and choose an iPhone or iPad simulator.
 
-In the Expo terminal, press `i` and choose an iPad simulator. Check both an iPad Pro 13-inch and an iPad mini.
+Check both an iPad Pro 13-inch and an iPad mini.
+
+### Last verified on
+
+- macOS 26.6.2, Xcode 26.0 (17A324), Node 24.13.0
+- IOS 26 simulators: iPhone 16e, iPhone 17, iPad Pro 13-inch, iPad mini (A17 Pro)
