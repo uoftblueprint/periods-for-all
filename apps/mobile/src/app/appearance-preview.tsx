@@ -5,8 +5,8 @@ import { defaultSettings, type Settings } from '@/foundation/contracts';
 import { PreviewScreen } from '@/foundation/preview-screen';
 import { getAppearance } from '@/features/settings/appearance';
 
-const combinations: Settings[] = (['light', 'dark'] as const).flatMap((colorScheme) =>
-  (['standard', 'large'] as const).map((textSize) => ({ ...defaultSettings, colorScheme, textSize })),
+const combinations: Settings[] = (['light', 'dark', 'highContrast'] as const).flatMap((colorScheme) =>
+  (['standard', 'large', 'extraLarge', 'largest'] as const).map((textSize) => ({ ...defaultSettings, colorScheme, textSize })),
 );
 
 function Sample({ settings }: { settings: Settings }) {

@@ -14,8 +14,8 @@ export type AuthService = {
 };
 
 export type Settings = {
-  textSize: 'standard' | 'large';
-  colorScheme: 'light' | 'dark';
+  textSize: 'standard' | 'large' | 'extraLarge' | 'largest';
+  colorScheme: 'light' | 'dark' | 'highContrast';
   reduceMotion: boolean;
 };
 export const defaultSettings: Settings = {
