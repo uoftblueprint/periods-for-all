@@ -9,12 +9,18 @@ export type AuthClient = Pick<
   'getSession' | 'signInWithPassword' | 'signOut' | 'onAuthStateChange'
 >;
 
+/**
+ * Keep only { id, email }. Supabase's email is optional (e.g. phone-only
+ * accounts), but the app's User needs one, so a user without an email is
+ * treated as "no usable user" rather than crashing.
+ */
 export function toAppUser(user: SupabaseUser | null | undefined): User | null {
   if (!user) return null;
   if (!user.email) return null;
   return { id: user.id, email: user.email };
 }
 
+/** Messages safe to show on screen. Raw Supabase errors never reach the UI. */
 export const SIGN_IN_MESSAGES = {
   invalidCredentials: 'Incorrect email or password.',
   emailNotConfirmed: 'Please confirm your email address before signing in.',
@@ -37,7 +43,16 @@ export function createAuthFromClient(auth: AuthClient): AuthService {
     async getUser() {
       const { data, error } = await auth.getSession();
       if (error) throw error;
-      return toAppUser(data.session?.user);
+
+      const sessionUser = data.session?.user;
+      const user = toAppUser(sessionUser);
+      if (sessionUser && !user) {
+        // A saved session exists but its user has no email. Clear it so the
+        // app ("signed out") and Supabase ("signed in") don't disagree.
+        const { error: signOutError } = await auth.signOut();
+        if (signOutError) throw signOutError;
+      }
+      return user;
     },
 
     async signIn({ email, password }: Credentials) {
@@ -47,8 +62,11 @@ export function createAuthFromClient(auth: AuthClient): AuthService {
 
         const user = toAppUser(data.user);
         if (!user) {
-          // Signed in but unusable for this app: don't leave a session behind.
-          await auth.signOut().catch(() => undefined);
+          // Signed in but unusable for this app: clear the session.
+          // If clearing fails, the session may still be active, so report a
+          // general failure instead of the missing-email message.
+          const { error: signOutError } = await auth.signOut();
+          if (signOutError) return { ok: false, message: SIGN_IN_MESSAGES.unavailable };
           return { ok: false, message: SIGN_IN_MESSAGES.missingEmail };
         }
         return { ok: true, user };
@@ -58,6 +76,8 @@ export function createAuthFromClient(auth: AuthClient): AuthService {
       }
     },
 
+    // Resolves only after Supabase confirms sign-out. Failures are re-thrown,
+    // not swallowed, so the caller knows the user may still be signed in.
     async signOut() {
       const { error } = await auth.signOut();
       if (error) throw error;
