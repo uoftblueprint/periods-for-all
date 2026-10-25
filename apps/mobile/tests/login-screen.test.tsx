@@ -17,6 +17,7 @@ test('ignores extra presses while sign-in is in progress', async () => {
   fireEvent.press(button);
   fireEvent.press(button);
   expect(signIn).toHaveBeenCalledTimes(1);
+  expect(signIn).toHaveBeenCalledWith({ email: 'demo@example.com', password: 'demo-only' });
 
   const user = { id: '1', email: 'demo@example.com' };
   await act(async () => finish({ ok: true, user }));

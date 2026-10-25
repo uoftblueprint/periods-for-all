@@ -56,6 +56,7 @@
     ],
     "moduleNameMapper": {
       "\\.css$": "<rootDir>/tests/style-mock.js",
+      "^@/assets/(.*)$": "<rootDir>/assets/$1",
       "^@/(.*)$": "<rootDir>/src/$1"
     }
   },
