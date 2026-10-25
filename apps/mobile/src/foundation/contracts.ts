@@ -13,6 +13,10 @@ export type AuthService = {
   subscribe: (listener: (user: User | null) => void) => () => void;
 };
 
+// Allowed values. The Settings type and normalizeSettings() both read these lists.
+export const textSizes = ['standard', 'large', 'extraLarge', 'largest'] as const;
+export const colorSchemes = ['light', 'dark', 'highContrast'] as const;
+
 export type Settings = {
   textSize: 'standard' | 'large' | 'extraLarge' | 'largest';
   colorScheme: 'light' | 'dark' | 'highContrast';

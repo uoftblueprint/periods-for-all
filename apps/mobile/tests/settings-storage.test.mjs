@@ -29,6 +29,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 // Import the functions we're testing.
 const { saveSettings, loadSettings } =
   await import('../src/features/settings/settings-storage.ts');
+const { defaultSettings } = await import('../src/foundation/contracts.ts');
 
 const sample = {
   textSize: 'large',
@@ -43,8 +44,8 @@ beforeEach(() => {
   failWrite = false;
 });
 
-for (const textSize of ['standard', 'large']) {
-  for (const colorScheme of ['light', 'dark']) {
+for (const textSize of ['standard', 'large', 'extraLarge', 'largest']) {
+  for (const colorScheme of ['light', 'dark', 'highContrast']) {
     for (const reduceMotion of [false, true]) {
       test(`fake storage round-trip: ${textSize}, ${colorScheme}, reduceMotion=${reduceMotion}`, async () => {
         const settings = Object.freeze({ textSize, colorScheme, reduceMotion });
@@ -57,25 +58,21 @@ for (const textSize of ['standard', 'large']) {
   }
 }
 
-for (const [description, settings] of [
-  ['non-string text size', { ...sample, textSize: 1 }],
-  ['unknown colour scheme', { ...sample, colorScheme: 'sepia' }],
-  ['non-string colour scheme', { ...sample, colorScheme: 1 }],
-  ['string motion value', { ...sample, reduceMotion: 'false' }],
-  ['numeric motion value', { ...sample, reduceMotion: 0 }],
-  ['missing text size', { colorScheme: 'dark', reduceMotion: true }],
-  ['missing colour scheme', { textSize: 'large', reduceMotion: true }],
-  ['missing motion value', { textSize: 'large', colorScheme: 'dark' }],
-  ['null', null],
-  ['array', []],
-  ['string', 'large'],
-  ['number', 1],
-  ['boolean', false],
+// Field-by-field rules are covered in normalize-settings.test.mjs; these check loading uses them.
+for (const [description, settings, expected] of [
+  ['unknown text size', { ...sample, textSize: 'huge' }, { ...sample, textSize: 'standard' }],
+  ['unknown colour scheme', { ...sample, colorScheme: 'sepia' }, { ...sample, colorScheme: 'light' }],
+  ['string motion value', { ...sample, reduceMotion: 'false' }, { ...sample, reduceMotion: false }],
+  ['missing motion value', { textSize: 'large', colorScheme: 'dark' }, { ...sample, reduceMotion: false }],
+  ['extra keys', { ...sample, username: 'abc' }, sample],
+  ['null', null, defaultSettings],
+  ['array', [], defaultSettings],
+  ['string', 'large', defaultSettings],
 ]) {
-  test(`loading ${description} rejects`, async () => {
+  test(`loading ${description} falls back to defaults`, async () => {
     records.set(SETTINGS_KEY, JSON.stringify(settings));
 
-    await assert.rejects(loadSettings(), /Invalid settings/);
+    assert.deepEqual(await loadSettings(), expected);
   });
 }
 
@@ -83,28 +80,10 @@ test('load returns null when nothing is saved', async () => {
   assert.equal(await loadSettings(), null);
 });
 
-test('loading invalid values rejects', async () => {
-  records.set(
-    SETTINGS_KEY,
-    JSON.stringify({ ...sample, textSize: 'huge' })
-  );
-
-  await assert.rejects(loadSettings(), /Invalid settings/);
-});
-
-test('loading extra keys rejects', async () => {
-  records.set(
-    SETTINGS_KEY,
-    JSON.stringify({ ...sample, username: 'abc' })
-  );
-
-  await assert.rejects(loadSettings(), /Invalid settings/);
-});
-
-test('loading corrupt JSON rejects', async () => {
+test('loading corrupt JSON falls back to defaults', async () => {
   records.set(SETTINGS_KEY, '{invalid JSON');
 
-  await assert.rejects(loadSettings(), /Invalid settings/);
+  assert.deepEqual(await loadSettings(), defaultSettings);
 });
 
 test('fake storage read failure rejects', async () => {

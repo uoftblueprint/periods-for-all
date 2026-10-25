@@ -23,15 +23,15 @@ test('reduce motion is passed through unchanged', () => {
   assert.equal(getAppearance({ ...base, reduceMotion: true }).reduceMotion, true);
 });
 
-for (const textSize of ['standard', 'large']) {
-  for (const colorScheme of ['light', 'dark']) {
+for (const textSize of ['standard', 'large', 'extraLarge', 'largest']) {
+  for (const colorScheme of ['light', 'dark', 'highContrast']) {
     for (const reduceMotion of [false, true]) {
       test(`appearance preserves frozen settings: ${textSize}, ${colorScheme}, reduceMotion=${reduceMotion}`, () => {
         const settings = Object.freeze({ textSize, colorScheme, reduceMotion });
 
         assert.deepEqual(getAppearance(settings), {
           colors: Colors[colorScheme],
-          fontScale: textSize === 'large' ? 1.25 : 1,
+          fontScale: { standard: 1, large: 1.25, extraLarge: 1.5, largest: 1.75 }[textSize],
           reduceMotion,
         });
         assert.deepEqual(settings, { textSize, colorScheme, reduceMotion });
