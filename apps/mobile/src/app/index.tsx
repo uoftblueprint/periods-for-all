@@ -10,6 +10,7 @@ export default function StartScreen() {
       <Link href="/settings">Open settings preview</Link>
       <Link href="/home">Open home placeholder</Link>
       <Link href="/playground">Open component playground</Link>
+      <Link href="/display-setup-preview">Open display setup preview</Link>
     </PreviewScreen>
   );
 }
