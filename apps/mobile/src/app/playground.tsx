@@ -3,7 +3,6 @@ import { Button, Text } from 'react-native';
 import { createDemoAuth } from '@/foundation/demo-auth';
 import { PreviewScreen } from '@/foundation/preview-screen';
 import ButtonPreview from './button-preview';
-import InputPreview from './input-preview';
 
 export default function Playground() {
   const [auth] = useState(createDemoAuth);
@@ -21,7 +20,6 @@ export default function Playground() {
       <Text>Add your component below to check it without waiting for another screen.</Text>
       {/* Example: <AppButton label="Continue" onPress={() => setMessage('Pressed')} /> */}
       <ButtonPreview></ButtonPreview>
-      <InputPreview></InputPreview>
     </PreviewScreen>
   );
 }

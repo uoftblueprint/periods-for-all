@@ -108,6 +108,18 @@ test('a user with no email is rejected explicitly and the session is cleared', a
   assert.equal(calls.signOut, 1);
 });
 
+test('missing email: if clearing the session fails, sign-in reports a general failure', async () => {
+  const { auth } = fakeClient({
+    signInWithPassword: async () => ({
+      data: { user: supabaseUser({ email: undefined }), session: {} },
+      error: null,
+    }),
+    signOut: async () => ({ error: authError('unexpected_failure', 'sign-out failed') }),
+  });
+  const result = await auth.signIn({ email: 'a@example.com', password: 'x' });
+  assert.deepEqual(result, { ok: false, message: SIGN_IN_MESSAGES.unavailable });
+});
+
 // --- getUser --------------------------------------------------------------
 
 test('getUser returns null when there is no saved session', async () => {
@@ -120,6 +132,36 @@ test('getUser maps the user from a saved session', async () => {
     getSession: async () => ({ data: { session: { user: supabaseUser() } }, error: null }),
   });
   assert.deepEqual(await auth.getUser(), { id: 'user-123', email: 'synthetic@example.com' });
+});
+
+test('restored session with no email: getUser returns null and clears the session', async () => {
+  const { auth, calls } = fakeClient({
+    getSession: async () => ({
+      data: { session: { user: supabaseUser({ email: undefined }) } },
+      error: null,
+    }),
+  });
+  assert.equal(await auth.getUser(), null);
+  assert.equal(calls.signOut, 1);
+});
+
+test('restored session with no email: a failed cleanup is reported, not hidden', async () => {
+  const { auth } = fakeClient({
+    getSession: async () => ({
+      data: { session: { user: supabaseUser({ email: undefined }) } },
+      error: null,
+    }),
+    signOut: async () => ({ error: authError('unexpected_failure', 'sign-out failed') }),
+  });
+  await assert.rejects(() => auth.getUser());
+});
+
+test('a normal restored session does not sign the user out', async () => {
+  const { auth, calls } = fakeClient({
+    getSession: async () => ({ data: { session: { user: supabaseUser() } }, error: null }),
+  });
+  await auth.getUser();
+  assert.equal(calls.signOut, 0);
 });
 
 // --- signOut --------------------------------------------------------------
