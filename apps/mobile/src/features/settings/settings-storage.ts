@@ -1,4 +1,5 @@
-import type {Settings} from '@/foundation/contracts';
+import {defaultSettings, type Settings} from '@/foundation/contracts';
+import {normalizeSettings} from '@/features/settings/normalize-settings';
 import 'expo-sqlite/localStorage/install';
 
 const SETTINGS_KEY = 'accessibility-settings'
@@ -58,14 +59,10 @@ export async function loadSettings(): Promise<Settings|null>{
         parsed = JSON.parse(settings);
 
     }catch{
-        throw new Error("Invalid settings");
+        return {...defaultSettings}; // corrupt JSON: fall back instead of crashing
     }
 
-    if(!isValidSetting(parsed)){ // check if it's format/fields are valid
-        throw new Error("Invalid settings");
-    }
-
-    return parsed;
+    return normalizeSettings(parsed); // bad or missing fields fall back to defaults
 }
 
 export async function saveSettings(settings: Settings): Promise<void>{
