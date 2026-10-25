@@ -1,0 +1,2 @@
+-- Reserved for future local development seed data.
+-- Synthetic authentication users are created through Supabase Studio.
