@@ -78,3 +78,10 @@ test('storage read and write failures reject', async () => {
   failWrite = true;
   await assert.rejects(saveSettings(sample), /Fake write failure/);
 });
+
+test('saving does not mutate its input', async () => {
+  const settings = { ...sample };
+  const original = { ...settings };
+  await saveSettings(settings);
+  assert.deepEqual(settings, original);
+});

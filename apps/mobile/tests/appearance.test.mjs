@@ -24,6 +24,23 @@ test('reduce motion passes through unchanged', () => {
   assert.equal(getAppearance({ ...base, reduceMotion: true }).reduceMotion, true);
 });
 
+for (const textSize of textSizes) {
+  for (const colorScheme of colorSchemes) {
+    for (const reduceMotion of [false, true]) {
+      test(`appearance preserves frozen settings: ${textSize}, ${colorScheme}, ${reduceMotion}`, () => {
+        const settings = Object.freeze({ textSize, colorScheme, reduceMotion });
+
+        assert.deepEqual(getAppearance(settings), {
+          colors: Colors[colorScheme],
+          fontScale: FontScale[textSize],
+          reduceMotion,
+        });
+        assert.deepEqual(settings, { textSize, colorScheme, reduceMotion });
+      });
+    }
+  }
+}
+
 function luminance(hex) {
   const [r, g, b] = [1, 3, 5].map((index) => {
     const channel = Number.parseInt(hex.slice(index, index + 2), 16) / 255;
