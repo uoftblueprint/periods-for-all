@@ -33,6 +33,7 @@ export default function HomeRoute() {
       <AppButton label={busy ? 'Signing out…' : 'Sign out'} busy={busy} onPress={handleSignOut} />
       <Link href="/settings">Open settings.</Link>
       <Link href="/">Back to developer starting point</Link>
+
     </PreviewScreen>
   );
 }
