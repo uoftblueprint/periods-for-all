@@ -25,7 +25,7 @@ function isValidSetting(settings: unknown): settings is Settings{
 
     //checking if textSize is valid
     if(
-        !("textSize" in settings) || 
+        !("textSize" in settings) ||
         typeof settings.textSize !== "string" ||
         !(validTextSizes.includes(settings.textSize))
     ){return false;}
@@ -39,7 +39,7 @@ function isValidSetting(settings: unknown): settings is Settings{
 
     //checking if reduceMotion is valid
     if(
-        !("reduceMotion" in settings) || 
+        !("reduceMotion" in settings) ||
         typeof settings.reduceMotion !== "boolean"
     ){return false;}
 
