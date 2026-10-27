@@ -7,6 +7,7 @@ export default function StartScreen() {
     <PreviewScreen title="Developer starting point">
       <Text>Preview screens independently. Fake accounts only; nothing is saved after reload.</Text>
       <Link href="/login">Open login preview</Link>
+      <Link href="/signup">Open signup preview</Link>
       <Link href="/settings">Open settings preview</Link>
       <Link href="/home">Open home placeholder</Link>
       <Link href="/appearance-preview">Open appearance preview</Link>
