@@ -1,3 +1,4 @@
+
 import { expect, jest, test } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
@@ -16,10 +17,22 @@ test('theme selection updates correctly', () => {
     />
   );
 
+  // Verify the initial selection
+  expect(
+    screen.getByRole('radio', { name: 'Default' })
+      .props.accessibilityState.checked
+  ).toBe(true);
+
+  expect(
+    screen.getByRole('radio', { name: 'Dark Mode' })
+      .props.accessibilityState.checked
+  ).toBe(false);
+
   // Press Dark Mode
   fireEvent.press(screen.getByRole('radio', { name: 'Dark Mode' }));
 
-  // Verify callback
+  // Verify the callback receives the correct value
+  expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith('dark');
 
   // Simulate the parent updating its state
@@ -34,12 +47,14 @@ test('theme selection updates correctly', () => {
     />
   );
 
-  // Verify accessibility selection state
+  // Verify the selected state updates
   expect(
     screen.getByRole('radio', { name: 'Dark Mode' })
-  ).toHaveAccessibilityState({ checked: true });
+      .props.accessibilityState.checked
+  ).toBe(true);
 
   expect(
     screen.getByRole('radio', { name: 'Default' })
-  ).toHaveAccessibilityState({ checked: false });
+      .props.accessibilityState.checked
+  ).toBe(false);
 });
