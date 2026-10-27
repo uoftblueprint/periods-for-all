@@ -43,21 +43,46 @@ beforeEach(() => {
   failWrite = false;
 });
 
-// Test 1: Save and load settings.
-test('save and load preserves all settings', async () => {
-  await saveSettings(sample);
+for (const textSize of ['standard', 'large']) {
+  for (const colorScheme of ['light', 'dark']) {
+    for (const reduceMotion of [false, true]) {
+      test(`fake storage round-trip: ${textSize}, ${colorScheme}, reduceMotion=${reduceMotion}`, async () => {
+        const settings = Object.freeze({ textSize, colorScheme, reduceMotion });
 
-  const loaded = await loadSettings();
+        await saveSettings(settings);
 
-  assert.deepEqual(loaded, sample);
-});
+        assert.deepEqual(await loadSettings(), settings);
+      });
+    }
+  }
+}
 
-// Test 2: No settings saved.
+for (const [description, settings] of [
+  ['non-string text size', { ...sample, textSize: 1 }],
+  ['unknown colour scheme', { ...sample, colorScheme: 'sepia' }],
+  ['non-string colour scheme', { ...sample, colorScheme: 1 }],
+  ['string motion value', { ...sample, reduceMotion: 'false' }],
+  ['numeric motion value', { ...sample, reduceMotion: 0 }],
+  ['missing text size', { colorScheme: 'dark', reduceMotion: true }],
+  ['missing colour scheme', { textSize: 'large', reduceMotion: true }],
+  ['missing motion value', { textSize: 'large', colorScheme: 'dark' }],
+  ['null', null],
+  ['array', []],
+  ['string', 'large'],
+  ['number', 1],
+  ['boolean', false],
+]) {
+  test(`loading ${description} rejects`, async () => {
+    records.set(SETTINGS_KEY, JSON.stringify(settings));
+
+    await assert.rejects(loadSettings(), /Invalid settings/);
+  });
+}
+
 test('load returns null when nothing is saved', async () => {
   assert.equal(await loadSettings(), null);
 });
 
-// Test 3: Invalid settings values.
 test('loading invalid values rejects', async () => {
   records.set(
     SETTINGS_KEY,
@@ -67,7 +92,6 @@ test('loading invalid values rejects', async () => {
   await assert.rejects(loadSettings(), /Invalid settings/);
 });
 
-// Test 4: Unexpected fields.
 test('loading extra keys rejects', async () => {
   records.set(
     SETTINGS_KEY,
@@ -77,28 +101,24 @@ test('loading extra keys rejects', async () => {
   await assert.rejects(loadSettings(), /Invalid settings/);
 });
 
-// Test 5: Corrupted JSON.
 test('loading corrupt JSON rejects', async () => {
   records.set(SETTINGS_KEY, '{invalid JSON');
 
-  await assert.rejects(loadSettings(), '/Invalid settings/');
+  await assert.rejects(loadSettings(), /Invalid settings/);
 });
 
-// Test 6: Fake read failure.
 test('fake storage read failure rejects', async () => {
   failRead = true;
 
   await assert.rejects(loadSettings(), /Fake read failure/);
 });
 
-// Test 7: Fake write failure.
 test('fake storage write failure rejects', async () => {
   failWrite = true;
 
   await assert.rejects(saveSettings(sample), /Fake write failure/);
 });
 
-// Test 8: Original object is not modified.
 test('saving does not mutate its input', async () => {
   const settings = { ...sample };
   const original = { ...settings };
