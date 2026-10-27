@@ -12,6 +12,7 @@ export default function StartScreen() {
       <Link href="/appearance-preview">Open appearance preview</Link>
       <Link href="/playground">Open component playground</Link>
       <Link href="/auth-preview">Open auth state preview</Link>
+      <Link href="/calendar-preview">Open calendar preview</Link>
     </PreviewScreen>
   );
 }
