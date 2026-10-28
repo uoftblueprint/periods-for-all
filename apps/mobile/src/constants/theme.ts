@@ -1,8 +1,3 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import '@/global.css';
 
 import { Platform } from 'react-native';
@@ -13,14 +8,13 @@ type Palette = Readonly<
   Record<'text' | 'background' | 'backgroundElement' | 'backgroundSelected' | 'textSecondary', string>
 >;
 
-// not const so light and dark palettes share one type.
 export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#31281B',
+    background: '#FCFBF8',
+    backgroundElement: '#F9F4EC',
+    backgroundSelected: '#FEE4E2',
+    textSecondary: '#5A482F',
   },
   dark: {
     text: '#ffffff',
@@ -29,7 +23,32 @@ export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
   },
+  // Provisional palette for the internal high-contrast preview; it has not been audited.
+  highContrast: {
+    text: '#000000',
+    background: '#FFFFFF',
+    backgroundElement: '#E6E6E6',
+    backgroundSelected: '#BDEFFF',
+    textSecondary: '#1A1A1A',
+  },
 };
+
+export const OnboardingColors = {
+  brand: '#A90D02',
+  brandPressed: '#7D1912',
+  brandSoft: '#FEE4E2',
+  border: '#F2EADE',
+  inactiveTrack: '#E4E4E2',
+  progressInactive: '#B9AB95',
+  white: '#FFFFFF',
+  darkPreview: '#25251F',
+  darkPreviewSurface: '#91918C',
+} as const;
+
+export const OnboardingFonts = {
+  regular: 'AtkinsonHyperlegible_400Regular',
+  bold: 'AtkinsonHyperlegible_700Bold',
+} as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
@@ -68,10 +87,11 @@ export const Spacing = {
   six: 64,
 } as const;
 
-// multiplier for font sizes and line heights.
 export const FontScale: Readonly<Record<Settings['textSize'], number>> = {
   standard: 1,
   large: 1.25,
+  extraLarge: 1.5,
+  largest: 1.75,
 };
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

@@ -1,3 +1,8 @@
+import {
+  AtkinsonHyperlegible_400Regular,
+  AtkinsonHyperlegible_700Bold,
+  useFonts,
+} from '@expo-google-fonts/atkinson-hyperlegible';
 import { useEffect, useRef, useState } from 'react';
 import { router, Stack } from 'expo-router';
 import { ActivityIndicator, Text } from 'react-native';
@@ -10,6 +15,14 @@ import { PreviewScreen } from '@/foundation/preview-screen';
 export const unstable_settings = { anchor: 'login' };
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    AtkinsonHyperlegible_400Regular,
+    AtkinsonHyperlegible_700Bold,
+  });
+
+  if (fontError) throw fontError;
+  if (!fontsLoaded) return null;
+
   // These open preview routes and fake accounts must not ship as a real app.
   if (!__DEV__) return <Text>This development starter is not a release build.</Text>;
   return <DevelopmentAuth />;
@@ -86,6 +99,7 @@ function AuthRoutes() {
   return (
     <Stack screenOptions={{ headerTitle: 'Periods for All · Development', contentStyle: { backgroundColor: '#fff' } }}>
       <Stack.Screen name="login" />
+      <Stack.Screen name="display-setup-preview" options={{ headerShown: false }} />
       <Stack.Protected guard={status === 'signedIn'}>
         <Stack.Screen name="home" />
       </Stack.Protected>

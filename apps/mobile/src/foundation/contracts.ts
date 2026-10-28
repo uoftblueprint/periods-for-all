@@ -1,4 +1,3 @@
-// Shared agreements. Discuss changes here before changing a screen's props.
 export type User = { id: string; email: string };
 export type Credentials = { email: string; password: string };
 export type SignInResult =
@@ -9,13 +8,18 @@ export type AuthService = {
   getUser: () => Promise<User | null>;
   signIn: (credentials: Credentials) => Promise<SignInResult>;
   signOut: () => Promise<void>;
-  // The real adapter will forward Supabase auth changes through this listener.
   subscribe: (listener: (user: User | null) => void) => () => void;
 };
 
+export const textSizes = ['standard', 'large', 'extraLarge', 'largest'] as const;
+export const colorSchemes = ['light', 'highContrast', 'dark'] as const;
+
+export type TextSize = (typeof textSizes)[number];
+export type ColorScheme = (typeof colorSchemes)[number];
+
 export type Settings = {
-  textSize: 'standard' | 'large';
-  colorScheme: 'light' | 'dark';
+  textSize: TextSize;
+  colorScheme: ColorScheme;
   reduceMotion: boolean;
 };
 export const defaultSettings: Settings = {
@@ -31,7 +35,6 @@ export type SettingsScreenProps = {
   onChange: (settings: Settings) => void;
 };
 
-// Interfaces for the reusable components the team will implement.
 export type AppButtonProps = {
   label: string;
   onPress: () => void;

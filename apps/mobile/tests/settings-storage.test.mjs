@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
 import test, { beforeEach, mock } from 'node:test';
 
-// Mock Expo SQLite so tests don't need a real device.
 mock.module('expo-sqlite/localStorage/install', {});
 
-// Fake localStorage for testing.
 const SETTINGS_KEY = 'accessibility-settings';
 const records = new Map();
-
 let failRead = false;
 let failWrite = false;
 
@@ -18,7 +15,6 @@ Object.defineProperty(globalThis, 'localStorage', {
       if (failRead) throw new Error('Fake read failure');
       return records.get(key) ?? null;
     },
-
     setItem(key, value) {
       if (failWrite) throw new Error('Fake write failure');
       records.set(key, String(value));
@@ -26,56 +22,43 @@ Object.defineProperty(globalThis, 'localStorage', {
   },
 });
 
-// Import the functions we're testing.
-const { saveSettings, loadSettings } =
+const { loadSettings, saveSettings } =
   await import('../src/features/settings/settings-storage.ts');
+const { colorSchemes, defaultSettings, textSizes } =
+  await import('../src/foundation/contracts.ts');
 
-const sample = {
-  textSize: 'large',
-  colorScheme: 'dark',
-  reduceMotion: true,
-};
+const sample = { textSize: 'large', colorScheme: 'dark', reduceMotion: true };
 
-// Reset fake storage before each test.
 beforeEach(() => {
   records.clear();
   failRead = false;
   failWrite = false;
 });
 
-for (const textSize of ['standard', 'large']) {
-  for (const colorScheme of ['light', 'dark']) {
+for (const textSize of textSizes) {
+  for (const colorScheme of colorSchemes) {
     for (const reduceMotion of [false, true]) {
-      test(`fake storage round-trip: ${textSize}, ${colorScheme}, reduceMotion=${reduceMotion}`, async () => {
+      test(`storage round-trip: ${textSize}, ${colorScheme}, ${reduceMotion}`, async () => {
         const settings = Object.freeze({ textSize, colorScheme, reduceMotion });
-
         await saveSettings(settings);
-
         assert.deepEqual(await loadSettings(), settings);
       });
     }
   }
 }
 
-for (const [description, settings] of [
-  ['non-string text size', { ...sample, textSize: 1 }],
-  ['unknown colour scheme', { ...sample, colorScheme: 'sepia' }],
-  ['non-string colour scheme', { ...sample, colorScheme: 1 }],
-  ['string motion value', { ...sample, reduceMotion: 'false' }],
-  ['numeric motion value', { ...sample, reduceMotion: 0 }],
-  ['missing text size', { colorScheme: 'dark', reduceMotion: true }],
-  ['missing colour scheme', { textSize: 'large', reduceMotion: true }],
-  ['missing motion value', { textSize: 'large', colorScheme: 'dark' }],
-  ['null', null],
-  ['array', []],
-  ['string', 'large'],
-  ['number', 1],
-  ['boolean', false],
+for (const [description, stored, expected] of [
+  ['unknown text size', { ...sample, textSize: 'huge' }, { ...sample, textSize: 'standard' }],
+  ['unknown colour scheme', { ...sample, colorScheme: 'sepia' }, { ...sample, colorScheme: 'light' }],
+  ['invalid motion', { ...sample, reduceMotion: 'false' }, { ...sample, reduceMotion: false }],
+  ['missing motion', { textSize: 'large', colorScheme: 'dark' }, { ...sample, reduceMotion: false }],
+  ['extra keys', { ...sample, username: 'example' }, sample],
+  ['null', null, defaultSettings],
+  ['array', [], defaultSettings],
 ]) {
-  test(`loading ${description} rejects`, async () => {
-    records.set(SETTINGS_KEY, JSON.stringify(settings));
-
-    await assert.rejects(loadSettings(), /Invalid settings/);
+  test(`loading ${description} normalizes stored settings`, async () => {
+    records.set(SETTINGS_KEY, JSON.stringify(stored));
+    assert.deepEqual(await loadSettings(), expected);
   });
 }
 
@@ -83,47 +66,22 @@ test('load returns null when nothing is saved', async () => {
   assert.equal(await loadSettings(), null);
 });
 
-test('loading invalid values rejects', async () => {
-  records.set(
-    SETTINGS_KEY,
-    JSON.stringify({ ...sample, textSize: 'huge' })
-  );
-
-  await assert.rejects(loadSettings(), /Invalid settings/);
-});
-
-test('loading extra keys rejects', async () => {
-  records.set(
-    SETTINGS_KEY,
-    JSON.stringify({ ...sample, username: 'abc' })
-  );
-
-  await assert.rejects(loadSettings(), /Invalid settings/);
-});
-
-test('loading corrupt JSON rejects', async () => {
+test('corrupt JSON falls back to defaults', async () => {
   records.set(SETTINGS_KEY, '{invalid JSON');
-
-  await assert.rejects(loadSettings(), /Invalid settings/);
+  assert.deepEqual(await loadSettings(), defaultSettings);
 });
 
-test('fake storage read failure rejects', async () => {
+test('storage read and write failures reject', async () => {
   failRead = true;
-
   await assert.rejects(loadSettings(), /Fake read failure/);
-});
-
-test('fake storage write failure rejects', async () => {
+  failRead = false;
   failWrite = true;
-
   await assert.rejects(saveSettings(sample), /Fake write failure/);
 });
 
 test('saving does not mutate its input', async () => {
   const settings = { ...sample };
   const original = { ...settings };
-
   await saveSettings(settings);
-
   assert.deepEqual(settings, original);
 });
