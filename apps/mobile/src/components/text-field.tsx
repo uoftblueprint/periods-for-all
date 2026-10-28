@@ -1,5 +1,5 @@
 import { View, Text, TextInput } from 'react-native';
-import { TextFieldProps } from '../foundation/contracts';
+import type { TextFieldProps } from '../foundation/contracts';
 import { Fonts, Spacing } from '../constants/theme';
 
 /**
@@ -14,7 +14,11 @@ import { Fonts, Spacing } from '../constants/theme';
  * @TextfieldProps keyboardType - The type of keyboard to display. It is either 'default', 'email-address'.
  * @returns The field container, including its label, input, and optional error.
  */
-export function TextField({ label, value, onChangeText, error, secureTextEntry, keyboardType }: TextFieldProps) {
+export function TextField({
+    label, value, onChangeText, error, secureTextEntry, keyboardType, editable,
+    autoCorrect = keyboardType === 'email-address' || secureTextEntry ? false : true,
+    autoCapitalize = keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences',
+}: TextFieldProps) {
 
     return (
         <View style={{
@@ -34,8 +38,9 @@ export function TextField({ label, value, onChangeText, error, secureTextEntry, 
             }}
                 placeholder={`Enter ${label.toLowerCase()}`}
                 onChangeText={onChangeText}
-                autoCorrect={keyboardType === 'email-address' || secureTextEntry ? false : true}
-                autoCapitalize={keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences'}
+                autoCorrect={autoCorrect}
+                autoCapitalize={autoCapitalize}
+                editable={editable}
                 value={value}
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
