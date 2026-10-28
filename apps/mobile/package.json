@@ -31,7 +31,11 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
     "@types/react": "~19.2.2",
+    "jest": "~29.7.0",
+    "jest-expo": "~57.0.5",
+    "react-test-renderer": "19.2.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -42,7 +46,20 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --experimental-test-module-mocks --import ./tests/support/register.mjs --test tests/demo-auth.test.mjs tests/appearance.test.mjs tests/settings-storage.test.mjs tests/normalize-settings.test.mjs tests/supabase-auth-adapter.test.mjs tests/settings-helpers.test.mjs tests/display-flow.test.mjs"
+    "test:services": "node --experimental-strip-types --experimental-test-module-mocks --import ./tests/support/register.mjs --test tests/*.test.mjs",
+    "test:components": "jest",
+    "test": "npm run test:services && npm run test:components"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.tsx"
+    ],
+    "moduleNameMapper": {
+      "\\.css$": "<rootDir>/tests/style-mock.js",
+      "^@/assets/(.*)$": "<rootDir>/assets/$1",
+      "^@/(.*)$": "<rootDir>/src/$1"
+    }
   },
   "private": true
 }
