@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, Text } from 'react-native';
 import { AppButton } from '@/components/app-button';
 import type { SignupScreenProps } from '@/features/auth/signup-contracts';
+import { usePreventRemove } from 'expo-router/react-navigation';
+
 
 const styles = StyleSheet.create({
   input:{
@@ -66,6 +68,11 @@ function SignUpForm(props: SignupScreenProps) {
             );
         }
     }, [state]);
+
+    usePreventRemove(state === 'details', () => {
+        props.onBackToLogin();
+    });
+
     const passwordChecks = [
         { label: 'Be at least 8 characters', valid: password.length >= 8 },
         {
@@ -206,8 +213,6 @@ function SignUpForm(props: SignupScreenProps) {
                     }
 
                 }} />
-
-                <AppButton label="Back to login" onPress={props.onBackToLogin} />
 
             </View>
        ) 
