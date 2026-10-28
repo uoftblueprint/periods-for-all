@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,8 +17,6 @@ import {
 import { FontSizeStep } from './font-size-step';
 import { MotionStep } from './motion-step';
 import { ThemeStep } from './theme-step';
-
-const backButtonImage = require('../../../assets/onboarding/back-button.png');
 
 export type DisplaySetupProps = {
   settings: Settings;
@@ -98,6 +96,8 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
           details={details}
           fontScale={fontScale}
           color={colors.text}
+          buttonColor={colors.backgroundElement}
+          buttonBorderColor={colors.backgroundSelected}
           disabled={saving}
           onBack={() => navigate('back')}
         />
@@ -166,11 +166,21 @@ type DisplayHeaderProps = {
   details: StepDetails | null;
   fontScale: number;
   color: string;
+  buttonColor: string;
+  buttonBorderColor: string;
   disabled: boolean;
   onBack: () => void;
 };
 
-function DisplayHeader({ details, fontScale, color, disabled, onBack }: DisplayHeaderProps) {
+function DisplayHeader({
+  details,
+  fontScale,
+  color,
+  buttonColor,
+  buttonBorderColor,
+  disabled,
+  onBack,
+}: DisplayHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.headerBar}>
@@ -183,10 +193,16 @@ function DisplayHeader({ details, fontScale, color, disabled, onBack }: DisplayH
           onPress={onBack}
           style={({ pressed }) => [
             styles.backButton,
+            { backgroundColor: buttonColor, borderColor: buttonBorderColor },
             { opacity: disabled ? 0.45 : pressed ? 0.7 : 1 },
           ]}
         >
-          <Image source={backButtonImage} contentFit="contain" style={styles.backButtonImage} />
+          <SymbolView
+            name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
+            size={24}
+            weight="semibold"
+            tintColor={color}
+          />
         </Pressable>
 
         {details && (
@@ -332,8 +348,16 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: 50,
     height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 25,
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  backButtonImage: { position: 'absolute', left: -4, top: -4, width: 58, height: 58 },
   heading: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 80 },
   stepLabel: { fontFamily: OnboardingFonts.regular, textAlign: 'center' },
   title: { fontFamily: OnboardingFonts.bold, textAlign: 'center' },
