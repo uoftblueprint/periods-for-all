@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, Text } from 'react-native';
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, Text } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 import { AppButton } from '@/components/app-button';
 import type { SignupScreenProps } from '@/features/auth/signup-contracts';
 import { usePreventRemove } from 'expo-router/react-navigation';
@@ -19,6 +20,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
     marginBottom: 12,
+  },
+
+  passwordField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 0,
+  },
+
+  passwordInput: {
+    flex: 1,
+    minWidth: 0,
+    padding: 12,
+  },
+
+  passwordToggle: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   spinner:{
@@ -62,6 +82,9 @@ function SignUpForm(props: SignupScreenProps) {
     }, [nameError, emailError, passwordError]);
 
     useEffect(() => {
+        setNameError(null);
+        setEmailError(null);
+        setPasswordError('');
         if (state === 'checkEmail') {
             AccessibilityInfo.announceForAccessibility(
                 'Check your email for next steps. If you already have an account, log in.'
@@ -73,8 +96,12 @@ function SignUpForm(props: SignupScreenProps) {
         props.onBackToLogin();
     });
 
+    usePreventRemove(state === 'password', () => {
+        setState('details');
+    });
+
     const passwordChecks = [
-        { label: 'Be at least 8 characters', valid: password.length >= 8 },
+        { label: 'Be at least 8 characters long', valid: password.length >= 8 },
         {
             label: 'Have one special character',
             valid: /[^\p{L}\p{N}\s]/u.test(password),
@@ -225,27 +252,40 @@ function SignUpForm(props: SignupScreenProps) {
                 <Text>
                     Password
                 </Text>
-                <TextInput
-                    accessibilityLabel="Password"
-                    accessibilityHint={passwordError || 'Required. Use at least 8 characters, one uppercase letter, and one special character.'}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChangeText={value => {
-                        setPassword(value);
-                        setPasswordError('');
-                    }}
-                    editable={!isSubmitting}
-                    secureTextEntry={!passwordVisible}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.input}
-                />
+                <View style={[styles.input, styles.passwordField]}>
+                    <TextInput
+                        accessibilityLabel="Password"
+                        accessibilityHint={passwordError || 'Required. Use at least 8 characters, one uppercase letter, and one special character.'}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChangeText={value => {
+                            setPassword(value);
+                            setPasswordError('');
+                        }}
+                        editable={!isSubmitting}
+                        secureTextEntry={!passwordVisible}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={styles.passwordInput}
+                    />
 
-                <AppButton
-                    label={passwordVisible ? 'Hide password' : 'Show password'}
-                    onPress={() => setPasswordVisible(visible => !visible)}
-                    disabled={isSubmitting}
-                />
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+                        accessibilityState={{ disabled: isSubmitting }}
+                        onPress={() => setPasswordVisible(visible => !visible)}
+                        disabled={isSubmitting}
+                        style={({ pressed }) => [styles.passwordToggle, { opacity: isSubmitting ? 0.5 : pressed ? 0.75 : 1 }]}
+                    >
+                        <SymbolView
+                            name={passwordVisible
+                                ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                                : { ios: 'eye', android: 'visibility', web: 'visibility' }}
+                            size={22}
+                            tintColor="black"
+                        />
+                    </Pressable>
+                </View>
 
                 {!!passwordError && (
                     <Text accessibilityRole="alert" style={styles.error}>{passwordError}</Text>
@@ -270,7 +310,6 @@ function SignUpForm(props: SignupScreenProps) {
                     onPress={handleSignUp}
                     disabled={isSubmitting}
                 />
-                <AppButton label="Back" disabled={isSubmitting} onPress={() => setState('details')} />
 
             </View>
         )
