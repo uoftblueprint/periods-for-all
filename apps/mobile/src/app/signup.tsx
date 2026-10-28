@@ -1,10 +1,10 @@
 import { SignUpScreen } from '@/features/auth/signup-screen';
-import { PreviewScreen } from '@/foundation/preview-screen';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 
 export default function SignUpScreenPreview() {
     return (
-        <PreviewScreen title="Sign Up preview (fake accounts)">
+        <View style={{ flex: 1 }}>
             <SignUpScreen signUp={async () => {
                 return { status: 'checkEmail' };
 
@@ -15,6 +15,6 @@ export default function SignUpScreenPreview() {
                 console.log('Back to login');
                 router.push('/');
             }}/>
-        </PreviewScreen>
+        </View>
     )
 }

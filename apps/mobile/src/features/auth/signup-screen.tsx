@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, StyleSheet, TextInput, Button, View, Text } from 'react-native';
-import { router } from 'expo-router';
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, Text } from 'react-native';
+import { AppButton } from '@/components/app-button';
 import type { SignupScreenProps } from '@/features/auth/signup-contracts';
 
 const styles = StyleSheet.create({
@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   },
 
   error: {
-    color: 'red',
+    color: '#B00020',
     fontWeight: 'bold',
     fontSize: 14,
     marginBottom: 12,
@@ -25,6 +25,23 @@ const styles = StyleSheet.create({
 })
 
 export function SignUpScreen(props: SignupScreenProps) {
+    return (
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1, padding: 24 }}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+            >
+                <SignUpForm {...props} />
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
+}
+
+function SignUpForm(props: SignupScreenProps) {
     const [state, setState] = useState<'password' | 'details' | 'checkEmail'>('details');
     const [firstName, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -64,7 +81,7 @@ export function SignUpScreen(props: SignupScreenProps) {
 
         const unmetRules = passwordChecks.filter(check => !check.valid);
         if (unmetRules.length) {
-            setPasswordError(`Password must have: ${unmetRules.map(check => check.label).join('; ')}.`);
+            setPasswordError(`Password is missing requirements: ${unmetRules.map(check => check.label).join('; ')}.`);
             return;
         }
         setPasswordError('');
@@ -137,7 +154,7 @@ export function SignUpScreen(props: SignupScreenProps) {
                 />
 
                 {!!nameError && (
-                    <Text style={styles.error}>
+                    <Text accessibilityRole="alert" style={styles.error}>
                         {nameError}
                     </Text>
                 )}
@@ -150,7 +167,7 @@ export function SignUpScreen(props: SignupScreenProps) {
                     ref={emailInput}
                     accessibilityLabel="Email address"
                     accessibilityHint={emailError || 'Required. Enter a valid email address.'}
-                    placeholder="Enter your email"
+                    placeholder="example@mail.com"
                     value={email}
                     onChangeText={value => {
                         setEmail(value);
@@ -166,10 +183,10 @@ export function SignUpScreen(props: SignupScreenProps) {
                 />
 
                 {!!emailError && (
-                    <Text style={styles.error}>{emailError}</Text>
+                    <Text accessibilityRole="alert" style={styles.error}>{emailError}</Text>
                 )}
 
-                <Button title="Next" accessibilityLabel="Continue to password" onPress={() => {
+                <AppButton label="Next" onPress={() => {
                     const nextNameError = firstName.trim()
                         ? ''
                         : 'Enter your first name.';
@@ -190,7 +207,7 @@ export function SignUpScreen(props: SignupScreenProps) {
 
                 }} />
 
-                <Button title="Back to login" onPress={props.onBackToLogin} />
+                <AppButton label="Back to login" onPress={props.onBackToLogin} />
 
             </View>
        ) 
@@ -212,20 +229,21 @@ export function SignUpScreen(props: SignupScreenProps) {
                         setPassword(value);
                         setPasswordError('');
                     }}
+                    editable={!isSubmitting}
                     secureTextEntry={!passwordVisible}
                     autoCapitalize="none"
                     autoCorrect={false}
                     style={styles.input}
                 />
 
-                <Button
-                    title={passwordVisible ? 'Hide password' : 'Show password'}
+                <AppButton
+                    label={passwordVisible ? 'Hide password' : 'Show password'}
                     onPress={() => setPasswordVisible(visible => !visible)}
-                    accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+                    disabled={isSubmitting}
                 />
 
                 {!!passwordError && (
-                    <Text style={styles.error}>{passwordError}</Text>
+                    <Text accessibilityRole="alert" style={styles.error}>{passwordError}</Text>
                 )}
 
                 <Text>
@@ -236,19 +254,18 @@ export function SignUpScreen(props: SignupScreenProps) {
                     <Text
                         key={check.label}
                         accessibilityLabel={`${check.valid ? 'Requirement met' : 'Requirement not met'}: ${check.label}`}
-                        style={{ color: check.valid ? 'green' : 'gray', marginBottom: 8 }}
+                        style={{ color: check.valid ? '#216E39' : '#595959', marginBottom: 8 }}
                     >
                         {check.valid ? '✓' : '○'} {check.label}
                     </Text>
                 ))}
-                <Button
-                    title={isSubmitting ? 'Signing up...' : 'Next'}
-                    accessibilityLabel={isSubmitting ? 'Signing up' : 'Create account'}
-                    accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+                <AppButton
+                    label={isSubmitting ? 'Signing up...' : 'Next'}
+                    busy={isSubmitting}
                     onPress={handleSignUp}
                     disabled={isSubmitting}
                 />
-                <Button title="Back" accessibilityLabel="Back to name and email" onPress={() => setState('details')} />
+                <AppButton label="Back" disabled={isSubmitting} onPress={() => setState('details')} />
 
             </View>
         )
@@ -261,8 +278,8 @@ export function SignUpScreen(props: SignupScreenProps) {
                     Check your email for next steps. If you already have an
                     account, log in.
                 </Text>
-                <Button
-                    title="Back to login"
+                <AppButton
+                    label="Back to login"
                     onPress={props.onBackToLogin}
                 />
             </View>
