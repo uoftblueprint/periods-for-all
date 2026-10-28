@@ -10,11 +10,11 @@ type Palette = Readonly<
 
 export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#31281B',
+    background: '#FCFBF8',
+    backgroundElement: '#F9F4EC',
+    backgroundSelected: '#FEE4E2',
+    textSecondary: '#5A482F',
   },
   dark: {
     text: '#ffffff',
@@ -32,6 +32,23 @@ export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
     textSecondary: '#1A1A1A',
   },
 };
+
+export const OnboardingColors = {
+  brand: '#A90D02',
+  brandPressed: '#7D1912',
+  brandSoft: '#FEE4E2',
+  border: '#F2EADE',
+  inactiveTrack: '#E4E4E2',
+  progressInactive: '#B9AB95',
+  white: '#FFFFFF',
+  darkPreview: '#25251F',
+  darkPreviewSurface: '#91918C',
+} as const;
+
+export const OnboardingFonts = {
+  regular: 'AtkinsonHyperlegible_400Regular',
+  bold: 'AtkinsonHyperlegible_700Bold',
+} as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 

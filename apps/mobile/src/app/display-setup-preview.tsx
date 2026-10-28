@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -8,6 +9,7 @@ import { defaultSettings } from '@/foundation/contracts';
 type Outcome = 'running' | 'finished' | 'exited';
 
 export default function DisplaySetupPreview() {
+  const { debug } = useLocalSearchParams<{ debug?: string }>();
   const [settings, setSettings] = useState(defaultSettings);
   const [rejectFinish, setRejectFinish] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>('running');
@@ -33,15 +35,17 @@ export default function DisplaySetupPreview() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.previewControls}>
-        <Text style={styles.previewLabel}>Reject finish (test failure and retry)</Text>
-        <Switch
-          accessibilityLabel="Reject finish"
-          accessibilityHint="Makes the next finish attempt fail so retry behavior can be tested"
-          value={rejectFinish}
-          onValueChange={setRejectFinish}
-        />
-      </View>
+      {debug === 'true' && (
+        <View style={styles.previewControls}>
+          <Text style={styles.previewLabel}>Reject finish (test failure and retry)</Text>
+          <Switch
+            accessibilityLabel="Reject finish"
+            accessibilityHint="Makes the next finish attempt fail so retry behavior can be tested"
+            value={rejectFinish}
+            onValueChange={setRejectFinish}
+          />
+        </View>
+      )}
       <DisplaySetup
         settings={settings}
         onChange={setSettings}
