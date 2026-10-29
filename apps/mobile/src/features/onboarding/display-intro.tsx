@@ -21,9 +21,8 @@ export function DisplayIntro({ appearance }: DisplayIntroProps) {
       {/* Placeholder illustration — replace with exported artwork when available */}
       <View
         style={[styles.illustration, { backgroundColor: colors.backgroundElement }]}
-        accessibilityRole="image"
-        accessibilityLabel="Decorative illustration"
-        accessible={false}
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no-hide-descendants"
       >
         <Text style={{ fontSize: 48 * fontScale, color: colors.textSecondary }}>🎨</Text>
       </View>
@@ -32,7 +31,7 @@ export function DisplayIntro({ appearance }: DisplayIntroProps) {
         Let's set up your display settings now!
       </Text>
 
-      <Text style={[styles.explanation, { color: colors.textSecondary, fontSize: 16 * fontScale }]}>
+      <Text style={[styles.explanation, { color: colors.textSecondary, fontSize: 16 * fontScale, lineHeight: 24 * fontScale }]}>
         These are to control how your app looks.
       </Text>
     </ScrollView>
@@ -64,6 +63,5 @@ const styles = StyleSheet.create({
   },
   explanation: {
     textAlign: 'center',
-    lineHeight: 24,
   },
 });
