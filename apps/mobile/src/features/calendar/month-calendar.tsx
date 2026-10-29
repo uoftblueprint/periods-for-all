@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
 import {
-  addMonths, buildMonthGrid, describeDate, formatDate, formatMonth, monthTitle, parseDate, parseMonth,
+  addDays, addMonths, buildMonthGrid, describeDate, formatDate, formatMonth, monthTitle, parseDate, parseMonth,
 } from './calendar-dates';
 
 export type MonthCalendarProps = {
@@ -142,9 +142,13 @@ function DayCell({ date, isToday, isSelected, periodDates, onPress, appearance }
   const { colors, fontScale } = appearance;
   const isPeriod = periodDates.has(date);
   // Round the bar's ends so a run of period days reads as one connected stretch.
-  const startsBar = isPeriod && !periodDates.has(formatDate(parts, parts.day - 1));
-  const endsBar = isPeriod && !periodDates.has(formatDate(parts, parts.day + 1));
-  const circleSize = 32 * fontScale;
+  // Check the real neighbouring dates, so a period continuing into the next/previous month isn't cut off.
+  const prev = addDays(parts, -1);
+  const next = addDays(parts, 1);
+  const startsBar = isPeriod && !periodDates.has(formatDate(prev, prev.day));
+  const endsBar = isPeriod && !periodDates.has(formatDate(next, next.day));
+  // Capped so the circle doesn't outgrow its column at the largest text sizes.
+  const circleSize = Math.min(32 * fontScale, 40);
   // The dark-red outline is too faint on a black background, so dark mode uses the lighter red.
   const outlineColor = colors === Colors.dark ? PERIOD : ACCENT;
 
@@ -168,7 +172,7 @@ function DayCell({ date, isToday, isSelected, periodDates, onPress, appearance }
       )}
       <View
         style={{
-          width: circleSize, height: circleSize, borderRadius: circleSize / 2,
+          width: circleSize, maxWidth: '100%', aspectRatio: 1, borderRadius: circleSize / 2,
           alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? ACCENT : 'transparent',
         }}>
         <Text style={{ color: isToday ? ON_ACCENT : colors.text, fontSize: 14 * fontScale, fontWeight: isSelected || isToday ? '700' : '400' }}>

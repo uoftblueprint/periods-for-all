@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  addMonths, buildMonthGrid, daysInMonth, describeDate, formatMonth, monthTitle, parseDate, parseMonth,
+  addDays, addMonths, buildMonthGrid, daysInMonth, describeDate, formatMonth, monthTitle, parseDate, parseMonth,
 } from '../src/features/calendar/calendar-dates.ts';
 
 test('October 2026 starts on Thursday and has 31 days', () => {
@@ -35,4 +35,11 @@ test('invalid inputs fail safely', () => {
 test('labels use local calendar dates', () => {
   assert.equal(monthTitle({ year: 2026, month: 10 }), 'October 2026');
   assert.equal(describeDate({ year: 2026, month: 10, day: 14 }), 'Wednesday, October 14, 2026');
+});
+
+test('neighbouring days cross month and year edges', () => {
+  assert.deepEqual(addDays({ year: 2026, month: 10, day: 1 }, -1), { year: 2026, month: 9, day: 30 });
+  assert.deepEqual(addDays({ year: 2026, month: 12, day: 31 }, 1), { year: 2027, month: 1, day: 1 });
+  assert.deepEqual(addDays({ year: 2028, month: 3, day: 1 }, -1), { year: 2028, month: 2, day: 29 }); // leap year
+  assert.deepEqual(addDays({ year: 2026, month: 10, day: 14 }, 1), { year: 2026, month: 10, day: 15 });
 });

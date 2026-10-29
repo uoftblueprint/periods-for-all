@@ -60,6 +60,18 @@ export function addMonths(value: YearMonth, delta: number): YearMonth {
   return { year: Math.floor(index / 12), month: (index % 12) + 1 };
 }
 
+/** The calendar date one day before (-1) or after (+1), crossing month and year edges. */
+export function addDays(date: CalendarDate, delta: -1 | 1): CalendarDate {
+  if (delta === -1 && date.day === 1) {
+    const prev = addMonths(date, -1);
+    return { ...prev, day: daysInMonth(prev) };
+  }
+  if (delta === 1 && date.day === daysInMonth(date)) {
+    return { ...addMonths(date, 1), day: 1 };
+  }
+  return { ...date, day: date.day + delta };
+}
+
 /** Sunday-first weeks for the month; null cells are blanks before the 1st / after the last day. */
 export function buildMonthGrid(ym: YearMonth): (string | null)[][] {
   const cells: (string | null)[] = Array(weekday(ym.year, ym.month, 1)).fill(null);
