@@ -1,13 +1,15 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
 import { colorSchemes, type Settings } from '@/foundation/contracts';
+import { useRadioGroup } from './use-radio-group';
 
 export type ThemeStepProps = {
   value: Settings['colorScheme'];
   onChange: (value: Settings['colorScheme']) => void;
   appearance: Appearance;
+  disabled?: boolean;
 };
 
 const labels: Record<Settings['colorScheme'], string> = {
@@ -16,12 +18,10 @@ const labels: Record<Settings['colorScheme'], string> = {
   dark: 'Dark Mode',
 };
 
-export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
+export function ThemeStep({ value, onChange, appearance, disabled = false }: ThemeStepProps) {
+  const radioProps = useRadioGroup(colorSchemes, value, onChange, disabled);
   return (
-    <ScrollView
-      style={{ backgroundColor: appearance.colors.background }}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.content, { backgroundColor: appearance.colors.background }]}>
       <Text
         style={{
           color: appearance.colors.textSecondary,
@@ -32,15 +32,13 @@ export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
         Choose the colour theme that makes the app easiest for you to use.
       </Text>
       <View accessibilityRole="radiogroup" style={styles.cards}>
-        {colorSchemes.map((scheme) => {
+        {colorSchemes.map((scheme, index) => {
           const selected = scheme === value;
           const palette = Colors[scheme];
           return (
             <Pressable
               key={scheme}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
-              onPress={() => onChange(scheme)}
+              {...radioProps(index)}
               style={({ pressed }) => [
                 styles.card,
                 {
@@ -72,7 +70,7 @@ export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
           );
         })}
       </View>
-    </ScrollView>
+    </View>
   );
 }
 

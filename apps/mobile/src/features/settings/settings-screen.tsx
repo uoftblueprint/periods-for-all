@@ -1,20 +1,21 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
+import type { Appearance } from './appearance';
 import type { SettingsScreenProps } from '@/foundation/contracts';
 
-export function SettingsScreen(props: SettingsScreenProps) {
+export function SettingsScreen(props: SettingsScreenProps & { appearance?: Appearance }) {
   return (
     <View style={styles.controls}>
       <View style={styles.row}>
-        <Text style={styles.label}>Large text</Text>
+        <Text style={[styles.label, props.appearance && { color: props.appearance.colors.text, fontSize: 16 * props.appearance.fontScale }]}>Large text</Text>
         <Switch
           accessibilityLabel="Large text"
           hitSlop={8}
-          value={props.settings.textSize === 'large'}
+          value={props.settings.textSize !== 'standard'}
           onValueChange={(value) => props.onChange({ ...props.settings, textSize: value ? 'large' : 'standard' })}
         />
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Dark mode</Text>
+        <Text style={[styles.label, props.appearance && { color: props.appearance.colors.text, fontSize: 16 * props.appearance.fontScale }]}>Dark mode</Text>
         <Switch
           accessibilityLabel="Dark mode"
           hitSlop={8}
@@ -23,7 +24,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
         />
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Reduce motion</Text>
+        <Text style={[styles.label, props.appearance && { color: props.appearance.colors.text, fontSize: 16 * props.appearance.fontScale }]}>Reduce motion</Text>
         <Switch
           accessibilityLabel="Reduce motion"
           hitSlop={8}

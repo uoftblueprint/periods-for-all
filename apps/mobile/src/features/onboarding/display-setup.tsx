@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { getAppearance } from '@/features/settings/appearance';
 import type { Settings } from '@/foundation/contracts';
+import { focusHeading } from '@/foundation/preview-screen';
 
 import { DisplayIntro } from './display-intro';
 import {
@@ -38,8 +39,16 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const finishInFlight = useRef(false);
+  const scroll = useRef<ScrollView>(null);
+  const heading = useRef<Text>(null);
+  const focusedHeading = useRef<Text | null>(null);
   const appearance = getAppearance(settings);
   const { colors, fontScale } = appearance;
+  const { fontScale: systemFontScale } = useWindowDimensions();
+
+  useEffect(() => {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  }, [position]);
 
   /** Runs onFinish at most once concurrently and clears saving state when it settles. */
   async function finish() {
@@ -63,7 +72,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   }
 
   function navigate(action: DisplayAction) {
-    if (saving) return;
+    if (finishInFlight.current) return;
     const { navigation } = transitionDisplayFlow({ position, settings }, action);
     setError(null);
     if (navigation.type === 'position') setPosition(navigation.position);
@@ -74,7 +83,25 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   const details = position === 'introduction' ? null : stepDetails[position];
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <ScrollView
+      // Refresh iOS text measurements after a live Dynamic Type change.
+      key={Platform.OS === 'ios' ? systemFontScale : undefined}
+      ref={scroll}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={styles.screen}
+    >
+      <Text
+        ref={heading}
+        tabIndex={-1}
+        accessibilityRole="header"
+        onLayout={() => {
+          if (heading.current && focusedHeading.current !== heading.current) {
+            focusedHeading.current = heading.current;
+            focusHeading(heading.current);
+          }
+        }}
+        style={{ color: colors.text, fontSize: 20 * fontScale, padding: 16 }}
+      >Display setup</Text>
       {details && (
         <View style={styles.heading}>
           <Text
@@ -86,6 +113,9 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
           <View
             accessibilityRole="progressbar"
             accessibilityValue={{ min: 1, max: 3, now: details.dot + 1 }}
+            aria-valuemin={1}
+            aria-valuemax={3}
+            aria-valuenow={details.dot + 1}
             accessibilityLabel={`Step ${details.dot + 1} of 3`}
             style={styles.dots}
           >
@@ -112,6 +142,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
         {position === 'introduction' && <DisplayIntro appearance={appearance} />}
         {position === 'font' && (
           <FontSizeStep
+            disabled={saving}
             value={settings.textSize}
             onChange={(textSize) => updateSettings({ ...settings, textSize })}
             appearance={appearance}
@@ -119,6 +150,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
         )}
         {position === 'motion' && (
           <MotionStep
+            disabled={saving}
             value={settings.reduceMotion}
             onChange={(reduceMotion) => updateSettings({ ...settings, reduceMotion })}
             appearance={appearance}
@@ -126,6 +158,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
         )}
         {position === 'theme' && (
           <ThemeStep
+            disabled={saving}
             value={settings.colorScheme}
             onChange={(colorScheme) => updateSettings({ ...settings, colorScheme })}
             appearance={appearance}
@@ -149,6 +182,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
         <FlowButton
           label="Back"
           disabled={saving}
+          fontScale={fontScale}
           onPress={() => navigate('back')}
           color={colors.text}
           backgroundColor={colors.backgroundElement}
@@ -156,6 +190,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
         <FlowButton
           label={saving ? 'Saving…' : 'Continue'}
           disabled={saving}
+          fontScale={fontScale}
           onPress={() => navigate('continue')}
           color={colors.background}
           backgroundColor={colors.text}
@@ -163,42 +198,51 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
         <FlowButton
           label="Skip"
           disabled={saving}
+          fontScale={fontScale}
           onPress={() => navigate('skip')}
           color={colors.text}
           backgroundColor={colors.backgroundElement}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 type FlowButtonProps = {
   label: string;
   disabled: boolean;
+  fontScale: number;
   onPress: () => void;
   color: string;
   backgroundColor: string;
 };
 
-function FlowButton({ label, disabled, onPress, color, backgroundColor }: FlowButtonProps) {
+function FlowButton({ label, disabled, fontScale, onPress, color, backgroundColor }: FlowButtonProps) {
+  const { fontScale: systemFontScale } = useWindowDimensions();
   return (
     <Pressable
       accessibilityRole="button"
+      aria-busy={disabled && label === 'Saving…'}
       accessibilityState={{ disabled, busy: disabled && label === 'Saving…' }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor, opacity: disabled ? 0.45 : pressed ? 0.72 : 1 },
+        {
+          backgroundColor,
+          minWidth: 90 * fontScale,
+          flexBasis: 90 * fontScale * systemFontScale,
+          opacity: disabled ? 0.45 : pressed ? 0.72 : 1,
+        },
       ]}
     >
-      <Text style={[styles.buttonLabel, { color }]}>{label}</Text>
+      <Text style={[styles.buttonLabel, { color, fontSize: 16 * fontScale }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flexGrow: 1 },
   heading: {
     alignItems: 'center',
     gap: Spacing.three,
@@ -208,22 +252,25 @@ const styles = StyleSheet.create({
   title: { fontWeight: '700', textAlign: 'center' },
   dots: { flexDirection: 'row', gap: Spacing.two },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  content: { flex: 1 },
+  content: { flexGrow: 1 },
   disabledContent: { pointerEvents: 'none' },
   error: { marginHorizontal: Spacing.four, marginBottom: Spacing.two },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
     padding: Spacing.three,
     borderTopWidth: 1,
   },
   button: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
     paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.three,
   },
   buttonLabel: { fontSize: 16, fontWeight: '700' },
 });

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
@@ -7,16 +7,14 @@ export type MotionStepProps = {
   value: boolean;
   onChange: (value: boolean) => void;
   appearance: Appearance;
+  disabled?: boolean;
 };
 
-export function MotionStep({ value, onChange, appearance }: MotionStepProps) {
+export function MotionStep({ value, onChange, appearance, disabled = false }: MotionStepProps) {
   const { colors, fontScale } = appearance;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.content, { backgroundColor: colors.background }]}>
       <View style={[styles.row, { backgroundColor: colors.backgroundElement }]}>
         <View style={styles.copy}>
           <Text style={[styles.label, { color: colors.text, fontSize: 18 * fontScale }]}>
@@ -34,13 +32,14 @@ export function MotionStep({ value, onChange, appearance }: MotionStepProps) {
           </Text>
         </View>
         <Switch
+          disabled={disabled}
           value={value}
           onValueChange={onChange}
           accessibilityLabel="Reduce Motion"
           accessibilityHint="Limits movement and animated effects throughout the app"
         />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
@@ -9,12 +9,10 @@ export function DisplayIntro({ appearance }: DisplayIntroProps) {
   const { colors, fontScale } = appearance;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.content, { backgroundColor: colors.background }]}>
       <View
         style={[styles.illustration, { backgroundColor: colors.backgroundElement }]}
+        aria-hidden
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
@@ -31,12 +29,11 @@ export function DisplayIntro({ appearance }: DisplayIntroProps) {
       >
         These are to control how your app looks.
       </Text>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: {
     flexGrow: 1,
     alignItems: 'center',

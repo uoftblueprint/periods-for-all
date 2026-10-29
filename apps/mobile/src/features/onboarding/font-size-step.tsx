@@ -1,13 +1,15 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FontScale, Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
 import { textSizes, type Settings } from '@/foundation/contracts';
+import { useRadioGroup } from './use-radio-group';
 
 export type FontSizeStepProps = {
   value: Settings['textSize'];
   onChange: (value: Settings['textSize']) => void;
   appearance: Appearance;
+  disabled?: boolean;
 };
 
 const labels: Record<Settings['textSize'], string> = {
@@ -17,14 +19,12 @@ const labels: Record<Settings['textSize'], string> = {
   largest: 'Largest',
 };
 
-export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps) {
+export function FontSizeStep({ value, onChange, appearance, disabled = false }: FontSizeStepProps) {
   const { colors, fontScale } = appearance;
+  const radioProps = useRadioGroup(textSizes, value, onChange, disabled);
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.content, { backgroundColor: colors.background }]}>
       <Text
         style={[
           {
@@ -37,14 +37,12 @@ export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps)
         Choose the text size that is most comfortable for you to read.
       </Text>
       <View accessibilityRole="radiogroup" style={styles.choices}>
-        {textSizes.map((size) => {
+        {textSizes.map((size, index) => {
           const selected = size === value;
           return (
             <Pressable
               key={size}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
-              onPress={() => onChange(size)}
+              {...radioProps(index)}
               style={({ pressed }) => [
                 styles.choice,
                 {
@@ -69,7 +67,7 @@ export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps)
           Preview: Your care information will appear at this size.
         </Text>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
