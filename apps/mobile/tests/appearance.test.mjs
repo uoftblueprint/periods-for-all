@@ -8,11 +8,14 @@ const base = { textSize: 'standard', colorScheme: 'light', reduceMotion: false }
 test('text size maps to the preview font scale', () => {
   assert.equal(getAppearance({ ...base, textSize: 'standard' }).fontScale, 1);
   assert.equal(getAppearance({ ...base, textSize: 'large' }).fontScale, 1.25);
+  assert.equal(getAppearance({ ...base, textSize: 'extraLarge' }).fontScale, 1.5);
+  assert.equal(getAppearance({ ...base, textSize: 'largest' }).fontScale, 1.75);
 });
 
 test('colour scheme selects the existing palette', () => {
   assert.equal(getAppearance({ ...base, colorScheme: 'light' }).colors, Colors.light);
   assert.equal(getAppearance({ ...base, colorScheme: 'dark' }).colors, Colors.dark);
+  assert.equal(getAppearance({ ...base, colorScheme: 'highContrast' }).colors, Colors.highContrast);
 });
 
 test('reduce motion is passed through unchanged', () => {
@@ -20,15 +23,15 @@ test('reduce motion is passed through unchanged', () => {
   assert.equal(getAppearance({ ...base, reduceMotion: true }).reduceMotion, true);
 });
 
-for (const textSize of ['standard', 'large']) {
-  for (const colorScheme of ['light', 'dark']) {
+for (const textSize of ['standard', 'large', 'extraLarge', 'largest']) {
+  for (const colorScheme of ['light', 'dark', 'highContrast']) {
     for (const reduceMotion of [false, true]) {
       test(`appearance preserves frozen settings: ${textSize}, ${colorScheme}, reduceMotion=${reduceMotion}`, () => {
         const settings = Object.freeze({ textSize, colorScheme, reduceMotion });
 
         assert.deepEqual(getAppearance(settings), {
           colors: Colors[colorScheme],
-          fontScale: textSize === 'large' ? 1.25 : 1,
+          fontScale: { standard: 1, large: 1.25, extraLarge: 1.5, largest: 1.75 }[textSize],
           reduceMotion,
         });
         assert.deepEqual(settings, { textSize, colorScheme, reduceMotion });
@@ -50,7 +53,7 @@ function contrast(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-for (const scheme of ['light', 'dark']) {
+for (const scheme of ['light', 'dark', 'highContrast']) {
   test(`${scheme} text meets WCAG AA (4.5:1) on every surface`, () => {
     const c = Colors[scheme];
     for (const surface of ['background', 'backgroundElement', 'backgroundSelected']) {

@@ -1,94 +1,92 @@
-import { useEffect, useRef, useState } from 'react';
-import { router, Stack } from 'expo-router';
-import { ActivityIndicator, Text } from 'react-native';
-import { AppButton } from '@/components/app-button';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { router, Stack, usePathname } from 'expo-router';
+import { Text } from 'react-native';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
-import type { AuthService } from '@/foundation/contracts';
+import { createSessionAuth } from '@/features/auth/session-auth';
+import { OnboardingGate } from '@/features/onboarding/onboarding-gate';
+import { OnboardingShell } from '@/features/onboarding/onboarding-shell';
+import { deviceCompletionStore } from '@/features/onboarding/device-completion-store';
+import { getAppearance } from '@/features/settings/appearance';
+import { SettingsProvider, useSettings } from '@/features/settings/settings-provider';
 import { createDemoAuth } from '@/foundation/demo-auth';
-import { PreviewScreen } from '@/foundation/preview-screen';
 
 export const unstable_settings = { anchor: 'login' };
 
 export default function RootLayout() {
-  // These open preview routes and fake accounts must not ship as a real app.
   if (!__DEV__) return <Text>This development starter is not a release build.</Text>;
-  return <DevelopmentAuth />;
+  return <DevelopmentApp />;
 }
 
-function DevelopmentAuth() {
-  const [service, setService] = useState<AuthService | null>(null);
-  const [setupError, setSetupError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const mode = process.env.EXPO_PUBLIC_AUTH_MODE ?? 'demo';
-    if (mode === 'demo') {
-      setService(createDemoAuth());
-      return;
-    }
-    if (mode !== 'supabase') {
-      setSetupError('Set EXPO_PUBLIC_AUTH_MODE to demo or supabase, then restart Expo.');
-      return;
-    }
-    if (!process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
-      setSetupError('Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local, then restart Expo.');
-      return;
-    }
-
-    // Load Supabase only when selected; ignore results after unmount.
-    let active = true;
-    import('@/features/auth/supabase-auth')
-      .then(({ createSupabaseAuth }) => {
-        if (active) setService(createSupabaseAuth());
-      })
-      .catch(() => {
-        if (active) setSetupError('Could not start sign-in. Check .env.local and restart Expo.');
-      });
-    return () => { active = false; };
-  }, []);
-
-  if (setupError) {
-    return (
-      <PreviewScreen title="Sign-in setup error">
-        <Text accessibilityRole="alert">{setupError}</Text>
-      </PreviewScreen>
-    );
+async function loadAuth() {
+  const mode = process.env.EXPO_PUBLIC_AUTH_MODE ?? 'demo';
+  if (mode === 'demo') return createDemoAuth();
+  if (mode !== 'supabase') throw new Error('Set EXPO_PUBLIC_AUTH_MODE to demo or supabase, then restart Expo.');
+  if (!process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error('Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local, then restart Expo.');
   }
-  if (!service) return <Text accessibilityLiveRegion="polite">Loading…</Text>;
-  return <AuthProvider service={service}><AuthRoutes /></AuthProvider>;
+  const { createSupabaseAuth } = await import('@/features/auth/supabase-auth');
+  return createSupabaseAuth();
 }
 
-function AuthRoutes() {
-  const { status, retry } = useAuth();
-  const previousStatus = useRef(status);
+function DevelopmentApp() {
+  const [session] = useState(() => createSessionAuth(loadAuth));
+  return <AuthProvider service={session.service}>
+    <SettingsProvider><AuthRoutes session={session} /></SettingsProvider>
+  </AuthProvider>;
+}
+
+function AuthRoutes({ session }: { session: ReturnType<typeof createSessionAuth> }) {
+  const auth = useAuth();
+  const preferences = useSettings();
+  const identity = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
+  const pathname = usePathname();
+  const appearance = getAppearance(preferences.settings);
+  const previousStatus = useRef(auth.status);
+  const onHomeReady = useCallback(() => router.replace('/home'), []);
+  const matchesUser = auth.user?.id === identity.userId;
+  const checking = identity.pending || (auth.status === 'signedIn' && !matchesUser);
+
   useEffect(() => {
-    // Return to login when signing out from any preview.
-    if (previousStatus.current === 'signedIn' && status === 'signedOut') {
-      router.replace('/login');
-    }
-    previousStatus.current = status;
-  }, [status]);
-  if (status === 'checking') {
-    return (
-      <PreviewScreen title="Checking if you’re signed in">
-        <ActivityIndicator accessibilityLabel="Checking if you’re signed in" />
-        <Text accessibilityLiveRegion="polite">Checking if you’re signed in…</Text>
-      </PreviewScreen>
-    );
-  }
-  if (status === 'error') {
-    return (
-      <PreviewScreen title="We couldn’t check if you’re signed in">
-        <Text accessibilityRole="alert">Please try again.</Text>
-        <AppButton label="Try again" onPress={retry} />
-      </PreviewScreen>
-    );
-  }
-  return (
-    <Stack screenOptions={{ headerTitle: 'Periods for All · Development', contentStyle: { backgroundColor: '#fff' } }}>
-      <Stack.Screen name="login" />
-      <Stack.Protected guard={status === 'signedIn'}>
-        <Stack.Screen name="home" />
-      </Stack.Protected>
-    </Stack>
-  );
+    if (previousStatus.current === 'signedIn' && auth.status === 'signedOut') router.replace('/login');
+    previousStatus.current = auth.status;
+  }, [auth.status]);
+
+  const navigator = <Stack screenOptions={{
+    headerTitle: 'Periods for All · Development',
+    animation: appearance.reduceMotion ? 'none' : 'default',
+    headerStyle: { backgroundColor: appearance.colors.background },
+    headerTintColor: appearance.colors.text,
+    headerTitleStyle: { fontSize: 18 * appearance.fontScale },
+    contentStyle: { backgroundColor: appearance.colors.background },
+  }}>
+    <Stack.Screen name="login" />
+    <Stack.Protected guard={auth.status === 'signedIn' && matchesUser}>
+      <Stack.Screen name="home" />
+    </Stack.Protected>
+  </Stack>;
+
+  return <OnboardingGate
+    auth={checking ? { ...auth, status: 'checking' } : auth}
+    sessionId={identity.generation}
+    sessionKey={identity.key}
+    getSessionKey={session.getWorkKey}
+    settings={preferences.isLoading || preferences.loadError ? null : preferences.settings}
+    settingsError={preferences.loadError}
+    onRetry={() => {
+      if (auth.status === 'error') auth.retry();
+      if (preferences.loadError) preferences.retryLoad();
+    }}
+    saveSettings={preferences.updateSettings}
+    completionStore={deviceCompletionStore}
+    render={(model) => <OnboardingShell
+      model={model}
+      navigator={navigator}
+      appearance={appearance}
+      bypass={!['/login', '/home', '/settings'].includes(pathname)}
+      sessionId={identity.generation}
+      workKey={identity.key}
+      getWorkKey={session.getWorkKey}
+      onHomeReady={onHomeReady}
+    />}
+  />;
 }

@@ -1,7 +1,7 @@
 import { expect, jest, test } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SettingsScreen } from '@/features/settings/settings-screen';
-import type { Settings } from '@/foundation/contracts';
+import { textSizes, type Settings } from '@/foundation/contracts';
 
 test('each switch changes only its own setting', () => {
   const settings: Settings = { textSize: 'large', colorScheme: 'dark', reduceMotion: true };
@@ -17,4 +17,9 @@ test('each switch changes only its own setting', () => {
     [{ ...settings, colorScheme: 'light' }],
     [{ ...settings, reduceMotion: false }],
   ]);
+});
+
+test.each(textSizes)('the large-text switch represents saved %s text', (textSize) => {
+  render(<SettingsScreen settings={{ textSize, colorScheme: 'highContrast', reduceMotion: false }} onChange={jest.fn()} />);
+  expect(screen.getByLabelText('Large text')).toHaveProp('value', textSize !== 'standard');
 });
