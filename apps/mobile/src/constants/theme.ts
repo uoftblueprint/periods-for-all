@@ -7,7 +7,14 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
-export const Colors = {
+import type { Settings } from '@/foundation/contracts';
+
+type Palette = Readonly<
+  Record<'text' | 'background' | 'backgroundElement' | 'backgroundSelected' | 'textSecondary', string>
+>;
+
+// not const so light and dark palettes share one type.
+export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
   light: {
     text: '#000000',
     background: '#ffffff',
@@ -22,7 +29,7 @@ export const Colors = {
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
   },
-} as const;
+};
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
@@ -60,6 +67,12 @@ export const Spacing = {
   five: 32,
   six: 64,
 } as const;
+
+// multiplier for font sizes and line heights.
+export const FontScale: Readonly<Record<Settings['textSize'], number>> = {
+  standard: 1,
+  large: 1.25,
+};
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
