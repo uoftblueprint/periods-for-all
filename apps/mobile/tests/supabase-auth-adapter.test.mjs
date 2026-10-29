@@ -198,3 +198,4 @@ test('subscribe returns a cleanup that unsubscribes', () => {
   stop();
   assert.equal(calls.unsubscribe, 1);
 });
+
