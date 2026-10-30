@@ -12,7 +12,7 @@ test('ignores extra presses while sign-in is in progress', async () => {
   fireEvent.changeText(screen.getByLabelText('Email address'), 'demo@example.com');
   fireEvent.changeText(screen.getByLabelText('Password'), 'demo-only');
 
-  const button = screen.getByLabelText('Login button');
+  const button = screen.getByRole('button', { name: 'Login' });
   fireEvent.press(button);
   fireEvent.press(button);
   fireEvent.press(button);
