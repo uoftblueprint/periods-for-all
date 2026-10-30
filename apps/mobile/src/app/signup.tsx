@@ -13,7 +13,7 @@ export default function SignUpScreenPreview() {
                 
             }} onBackToLogin={() => {
                 console.log('Back to login');
-                router.push('/');
+                router.replace('/login');
             }}/>
         </View>
     )

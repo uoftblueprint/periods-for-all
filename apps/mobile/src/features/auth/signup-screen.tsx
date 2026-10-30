@@ -64,7 +64,7 @@ export function SignUpScreen(props: SignupScreenProps) {
 }
 
 function SignUpForm(props: SignupScreenProps) {
-    const [state, setState] = useState<'password' | 'details' | 'checkEmail'>('details');
+    const [state, setState] = useState<'password' | 'details' | 'checkEmail' | 'completed'> ('details');
     const [firstName, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -100,13 +100,17 @@ function SignUpForm(props: SignupScreenProps) {
         setState('details');
     });
 
+    useEffect(() => {
+        if (state === 'completed') props.onSignedIn();
+    }, [state, props.onSignedIn]);
+
     const passwordChecks = [
         { label: 'Be at least 8 characters long', valid: password.length >= 8 },
         {
             label: 'Have one special character',
             valid: /[^\p{L}\p{N}\s]/u.test(password),
         },
-        { label: 'Have one upper case letter', valid: /[A-Z]/.test(password) }
+        { label: 'Have one upper case letter', valid: /\p{Lu}/u.test(password) }
     ];
 
     async function handleSignUp() { // form validation
@@ -150,7 +154,7 @@ function SignUpForm(props: SignupScreenProps) {
 
             if (result.status === 'signedIn') {
                 setPassword(''); // Clear password for security
-                props.onSignedIn();
+                setState('completed');
 
             } else if (result.status === 'checkEmail') {
                 setState('checkEmail');
