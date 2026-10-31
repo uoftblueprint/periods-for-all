@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, type ComponentProps } from 'react';
 import { afterEach, expect, jest, test } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, Dimensions, Pressable, Text } from 'react-native';
+import { AccessibilityInfo, Dimensions, Platform, Pressable, Text, View } from 'react-native';
 import { OnboardingGate, type GatePresentation } from '@/features/onboarding/onboarding-gate';
 import { OnboardingShell } from '@/features/onboarding/onboarding-shell';
 import { getAppearance } from '@/features/settings/appearance';
@@ -55,6 +55,9 @@ test.each(['success', 'failure'])('completion reload never commits Home before %
   f.store.isComplete.mockReturnValueOnce(reading.promise);
   f.setKey(null);
   result.rerender(<f.App sessionKey="1:1" auth={{ status: 'checking', user: { id: 'a', email: 'a@example.test' }, error: null }} />);
+  expect(screen.getByTestId('app-navigator', { includeHiddenElements: true })).toHaveStyle({ display: 'flex', pointerEvents: 'none' });
+  expect(screen.queryByText('Checking if you’re signed in')).toBeNull();
+  expect(screen.getByText('Please wait…')).toBeTruthy();
   f.committed.length = 0;
   f.setKey('1:1');
   result.rerender(<f.App sessionKey="1:1" />);
@@ -102,6 +105,7 @@ test('navigator stays mounted but hidden/inaccessible throughout loading, setup,
   expect(screen.getByTestId('app-navigator', { includeHiddenElements: true })).toHaveStyle({ display: 'none' });
   expect(screen.queryByRole('button', { name: 'Private action' })).toBeNull();
   expect(screen.getByTestId('app-navigator', { includeHiddenElements: true })).toHaveProp('importantForAccessibility', 'no-hide-descendants');
+  expect(screen.getByText('Checking if you’re signed in')).toBeTruthy();
   result.rerender(<f.App />);
   await act(async () => read.resolve(false));
   await screen.findByText('Display setup');
@@ -110,6 +114,43 @@ test('navigator stays mounted but hidden/inaccessible throughout loading, setup,
   f.setKey('2:0');
   result.rerender(<f.App sessionId={2} sessionKey="2:0" auth={{ status: 'signedIn', user: { id: 'b', email: 'b@example.test' }, error: null }} />);
   await screen.findByText('Display setup');
+  expect(f.mounts()).toBe(1);
+});
+
+test('web Home is inert during an auth operation and cannot carry over to another account', async () => {
+  jest.replaceProperty(Platform, 'OS', 'web');
+  const f = fixture();
+  f.store.isComplete.mockResolvedValueOnce(true);
+  const result = render(<f.App />);
+  await screen.findByRole('button', { name: 'Private action' });
+  const node = screen.UNSAFE_getAllByType(View).find((view) => view.props.testID === 'app-navigator')!.instance;
+  expect(node.inert).toBe(false);
+  f.setKey(null);
+  result.rerender(<f.App sessionKey="1:1" />);
+  expect(node.inert).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Private action' })).toBeNull();
+  f.setKey('2:2');
+  result.rerender(<f.App sessionId={2} sessionKey="2:2"
+    auth={{ status: 'signedIn', user: { id: 'b', email: 'b@example.test' }, error: null }} />);
+  await screen.findByText('Display setup');
+  expect(screen.getByTestId('app-navigator', { includeHiddenElements: true })).toHaveStyle({ display: 'none' });
+  expect(node.inert).toBe(false);
+  expect(f.mounts()).toBe(1);
+});
+
+test('a completion recheck that requires setup clears the previous Home presentation', async () => {
+  const f = fixture();
+  f.store.isComplete.mockResolvedValueOnce(true);
+  const result = render(<f.App />);
+  await screen.findByRole('button', { name: 'Private action' });
+  f.setKey(null);
+  result.rerender(<f.App sessionKey="1:1" auth={{ status: 'checking', user: { id: 'a', email: 'a@example.test' }, error: null }} />);
+  f.setKey('1:1');
+  result.rerender(<f.App sessionKey="1:1" />);
+  await screen.findByText('Display setup');
+  f.setKey(null);
+  result.rerender(<f.App sessionKey="1:2" />);
+  expect(screen.getByTestId('app-navigator', { includeHiddenElements: true })).toHaveStyle({ display: 'none' });
   expect(f.mounts()).toBe(1);
 });
 

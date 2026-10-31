@@ -1,30 +1,32 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
-import type { Appearance } from './appearance';
+import { FontSizeStep } from '@/features/onboarding/font-size-step';
+import { ThemeStep } from '@/features/onboarding/theme-step';
+import { getAppearance, type Appearance } from './appearance';
 import type { SettingsScreenProps } from '@/foundation/contracts';
 
 export function SettingsScreen(props: SettingsScreenProps & { appearance?: Appearance }) {
+  const appearance = props.appearance ?? getAppearance(props.settings);
+  const labelStyle = [styles.label, { color: appearance.colors.text, fontSize: 16 * appearance.fontScale }];
   return (
     <View style={styles.controls}>
-      <View style={styles.row}>
-        <Text style={[styles.label, props.appearance && { color: props.appearance.colors.text, fontSize: 16 * props.appearance.fontScale }]}>Large text</Text>
-        <Switch
-          accessibilityLabel="Large text"
-          hitSlop={8}
-          value={props.settings.textSize !== 'standard'}
-          onValueChange={(value) => props.onChange({ ...props.settings, textSize: value ? 'large' : 'standard' })}
+      <View>
+        <Text style={labelStyle}>Text size</Text>
+        <FontSizeStep
+          appearance={appearance}
+          value={props.settings.textSize}
+          onChange={(textSize) => props.onChange({ ...props.settings, textSize })}
+        />
+      </View>
+      <View>
+        <Text style={labelStyle}>Colour theme</Text>
+        <ThemeStep
+          appearance={appearance}
+          value={props.settings.colorScheme}
+          onChange={(colorScheme) => props.onChange({ ...props.settings, colorScheme })}
         />
       </View>
       <View style={styles.row}>
-        <Text style={[styles.label, props.appearance && { color: props.appearance.colors.text, fontSize: 16 * props.appearance.fontScale }]}>Dark mode</Text>
-        <Switch
-          accessibilityLabel="Dark mode"
-          hitSlop={8}
-          value={props.settings.colorScheme === 'dark'}
-          onValueChange={(value) => props.onChange({ ...props.settings, colorScheme: value ? 'dark' : 'light' })}
-        />
-      </View>
-      <View style={styles.row}>
-        <Text style={[styles.label, props.appearance && { color: props.appearance.colors.text, fontSize: 16 * props.appearance.fontScale }]}>Reduce motion</Text>
+        <Text style={labelStyle}>Reduce motion</Text>
         <Switch
           accessibilityLabel="Reduce motion"
           hitSlop={8}

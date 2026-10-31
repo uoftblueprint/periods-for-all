@@ -1,5 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/app-button';
 import { PreviewScreen } from '@/foundation/preview-screen';
@@ -18,7 +18,12 @@ export function OnboardingShell({ model, navigator, appearance, bypass = false, 
   onHomeReady: () => void;
 }) {
   const setupSession = useRef<number | null>(null);
+  const [homeSession, setHomeSession] = useState<number | null>(null);
+  if (model.view === 'home' && homeSession !== sessionId) setHomeSession(sessionId);
+  else if (model.view !== 'home' && model.view !== 'loading' && homeSession !== null) setHomeSession(null);
   const blocked = !bypass && model.view !== 'home' && model.view !== 'signedOut';
+  // Keep an already-authorized screen visible, but inactive, while its session settles.
+  const waitingOnHome = blocked && model.view === 'loading' && homeSession === sessionId;
   const gateAppearance = model.view === 'setup' && model.setup ? getAppearance(model.setup.settings) : appearance;
 
   useEffect(() => {
@@ -32,12 +37,16 @@ export function OnboardingShell({ model, navigator, appearance, bypass = false, 
   return <View style={{ flex: 1, backgroundColor: appearance.colors.background }}>
     <View
       testID="app-navigator"
-      style={{ flex: 1, display: blocked ? 'none' : 'flex', pointerEvents: blocked ? 'none' : 'auto' }}
+      ref={(node) => {
+        if (Platform.OS === 'web' && node) (node as unknown as HTMLElement).inert = waitingOnHome;
+      }}
+      style={{ flex: 1, display: blocked && !waitingOnHome ? 'none' : 'flex', pointerEvents: blocked ? 'none' : 'auto' }}
       aria-hidden={blocked}
       accessibilityElementsHidden={blocked}
       importantForAccessibility={blocked ? 'no-hide-descendants' : 'auto'}
     >{navigator}</View>
-    {blocked && <SafeAreaView style={{ flex: 1, backgroundColor: gateAppearance.colors.background }}>
+    {waitingOnHome && <Text accessibilityLiveRegion="polite" style={{ color: appearance.colors.text }}>Please wait…</Text>}
+    {blocked && !waitingOnHome && <SafeAreaView style={{ flex: 1, backgroundColor: gateAppearance.colors.background }}>
       {model.view === 'setup' && model.setup ? <DisplaySetup {...model.setup} /> : <PreviewScreen
         title={model.view === 'error' ? 'We couldn’t check if you’re signed in' : 'Checking if you’re signed in'}
         appearance={appearance}

@@ -44,7 +44,7 @@ function AuthRoutes({ session }: { session: ReturnType<typeof createSessionAuth>
   const previousStatus = useRef(auth.status);
   const onHomeReady = useCallback(() => router.replace('/home'), []);
   const matchesUser = auth.user?.id === identity.userId;
-  const checking = identity.pending || (auth.status === 'signedIn' && !matchesUser);
+  const checking = auth.status === 'signedIn' && (identity.pending || !matchesUser);
 
   useEffect(() => {
     if (previousStatus.current === 'signedIn' && auth.status === 'signedOut') router.replace('/login');
