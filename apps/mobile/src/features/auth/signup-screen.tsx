@@ -76,6 +76,7 @@ function SignUpForm(props: SignupScreenProps) {
     const [passwordError, setPasswordError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const submitting = useRef(false);
+    const [leaving, setLeaving] = useState(false);
     useEffect(() => {
         const errors = [nameError, emailError, passwordError].filter(Boolean).join(' ');
         if (errors) AccessibilityInfo.announceForAccessibility(errors);
@@ -92,9 +93,15 @@ function SignUpForm(props: SignupScreenProps) {
         }
     }, [state]);
 
-    usePreventRemove(state === 'details', () => {
-        props.onBackToLogin();
+    usePreventRemove(state === 'details' && !leaving, () => {
+        setLeaving(true);
     });
+
+    useEffect(() => {
+        if (leaving) {
+            props.onBackToLogin();
+        }
+    }, [leaving, props.onBackToLogin]);
 
     usePreventRemove(state === 'password', () => {
         setState('details');
