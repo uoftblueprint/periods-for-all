@@ -13,11 +13,11 @@ const COMPLETE_MARKER = 'true';
 
 function keyFor(userId: string): string {
 
-  if (typeof userId !== 'string' || !userId.trim()){
-    throw new Error ("User ID must be a defined and a valid string.")
+  if (typeof userId !== 'string'){
+    throw new Error ("User ID must be a valid string.")
   }
 
-  if (userId.trim().length === 0) {
+  if (!userId.trim()) {
     throw new Error('User ID must not be empty.');
   }
 
