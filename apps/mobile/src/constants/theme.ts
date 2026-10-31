@@ -29,7 +29,32 @@ export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
   },
+  highContrast: {
+    // temporary high-contrast palette for internal preview.
+    text: '#000000',
+    background: '#FFFFFF',
+    backgroundElement: '#E6E6E6',
+    backgroundSelected: '#86def0ff',
+    textSecondary: '#1A1A1A',
+  },
 };
+
+export const OnboardingColors = {
+  brand: '#A90D02',
+  brandPressed: '#7D1912',
+  brandSoft: '#FEE4E2',
+  border: '#F2EADE',
+  inactiveTrack: '#E4E4E2',
+  progressInactive: '#B9AB95',
+  white: '#FFFFFF',
+  darkPreview: '#25251F',
+  darkPreviewSurface: '#91918C',
+} as const;
+
+export const OnboardingFonts = {
+  regular: 'AtkinsonHyperlegible_400Regular',
+  bold: 'AtkinsonHyperlegible_700Bold',
+} as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
@@ -72,6 +97,8 @@ export const Spacing = {
 export const FontScale: Readonly<Record<Settings['textSize'], number>> = {
   standard: 1,
   large: 1.25,
+  extraLarge: 1.5,
+  largest: 1.75,
 };
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

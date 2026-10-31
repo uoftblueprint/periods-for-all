@@ -86,6 +86,7 @@ function AuthRoutes() {
   return (
     <Stack screenOptions={{ headerTitle: 'Periods for All · Development', contentStyle: { backgroundColor: '#fff' } }}>
       <Stack.Screen name="login" />
+      <Stack.Screen name="display-setup-preview" options={{ headerShown: false }} />
       <Stack.Protected guard={status === 'signedIn'}>
         <Stack.Screen name="home" />
       </Stack.Protected>
