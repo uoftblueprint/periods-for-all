@@ -1,3 +1,4 @@
+// Shared agreements. Discuss changes here before changing a screen's props.
 export type User = { id: string; email: string };
 export type Credentials = { email: string; password: string };
 export type SignInResult =
@@ -8,18 +9,17 @@ export type AuthService = {
   getUser: () => Promise<User | null>;
   signIn: (credentials: Credentials) => Promise<SignInResult>;
   signOut: () => Promise<void>;
+  // The real adapter will forward Supabase auth changes through this listener.
   subscribe: (listener: (user: User | null) => void) => () => void;
 };
 
+// Allowed values. The Settings type and normalizeSettings() both read these lists.
 export const textSizes = ['standard', 'large', 'extraLarge', 'largest'] as const;
-export const colorSchemes = ['light', 'highContrast', 'dark'] as const;
-
-export type TextSize = (typeof textSizes)[number];
-export type ColorScheme = (typeof colorSchemes)[number];
+export const colorSchemes = ['light', 'dark', 'highContrast'] as const;
 
 export type Settings = {
-  textSize: TextSize;
-  colorScheme: ColorScheme;
+  textSize: (typeof textSizes)[number];
+  colorScheme: (typeof colorSchemes)[number];
   reduceMotion: boolean;
 };
 export const defaultSettings: Settings = {
@@ -35,6 +35,7 @@ export type SettingsScreenProps = {
   onChange: (settings: Settings) => void;
 };
 
+// Interfaces for the reusable components the team will implement.
 export type AppButtonProps = {
   label: string;
   onPress: () => void;

@@ -1,3 +1,8 @@
+import {
+  AtkinsonHyperlegible_400Regular,
+  AtkinsonHyperlegible_700Bold,
+  useFonts,
+} from '@expo-google-fonts/atkinson-hyperlegible';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -49,6 +54,10 @@ const stepDetails: Record<Exclude<DisplayPosition, 'introduction'>, StepDetails>
 };
 
 export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySetupProps) {
+  const [fontsLoaded, fontError] = useFonts({
+    AtkinsonHyperlegible_400Regular,
+    AtkinsonHyperlegible_700Bold,
+  });
   const [position, setPosition] = useState<DisplayPosition>('introduction');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +97,9 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   const details = position === 'introduction' ? null : stepDetails[position];
   const continueLabel = details?.continueLabel ?? 'Continue';
   const skipLabel = details?.skipLabel ?? 'Skip to period information';
+
+  if (fontError) throw fontError;
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>

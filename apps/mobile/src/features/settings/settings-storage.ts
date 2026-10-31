@@ -1,21 +1,28 @@
+import {defaultSettings, type Settings} from '@/foundation/contracts';
+import {normalizeSettings} from '@/features/settings/normalize-settings';
 import 'expo-sqlite/localStorage/install';
 
-import { normalizeSettings } from '@/features/settings/normalize-settings';
-import { defaultSettings, type Settings } from '@/foundation/contracts';
+const SETTINGS_KEY = 'accessibility-settings'
 
-const SETTINGS_KEY = 'accessibility-settings';
+export async function loadSettings(): Promise<Settings|null>{
+    const settings = localStorage.getItem(SETTINGS_KEY);
 
-export async function loadSettings(): Promise<Settings | null> {
-  const stored = localStorage.getItem(SETTINGS_KEY);
-  if (stored === null) return null;
+    if(settings === null){
+        return null;
+    }
 
-  try {
-    return normalizeSettings(JSON.parse(stored));
-  } catch {
-    return { ...defaultSettings };
-  }
+    let parsed: unknown;
+    try{
+        parsed = JSON.parse(settings);
+
+    }catch{
+        return {...defaultSettings}; // corrupt JSON: fall back instead of crashing
+    }
+
+    return normalizeSettings(parsed); // bad or missing fields fall back to defaults
 }
 
-export async function saveSettings(settings: Settings): Promise<void> {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+export async function saveSettings(settings: Settings): Promise<void>{
+    const serialized = JSON.stringify(settings);
+    localStorage.setItem(SETTINGS_KEY, serialized);
 }
