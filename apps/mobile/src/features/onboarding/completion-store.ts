@@ -12,6 +12,11 @@ const KEY_PREFIX = 'display-setup:v1:';
 const COMPLETE_MARKER = 'true';
 
 function keyFor(userId: string): string {
+
+  if (typeof userId !== 'string' || !userId.trim()){
+    throw new Error ("User ID must be a defined and a valid string.")
+  }
+
   if (userId.trim().length === 0) {
     throw new Error('User ID must not be empty.');
   }
