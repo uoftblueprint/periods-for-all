@@ -1,11 +1,14 @@
 import { useEffect, useLayoutEffect, type ComponentProps } from 'react';
 import { afterEach, expect, jest, test } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, Dimensions, Platform, Pressable, Text, View } from 'react-native';
+import { AccessibilityInfo, Dimensions, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { OnboardingGate, type GatePresentation } from '@/features/onboarding/onboarding-gate';
 import { OnboardingShell } from '@/features/onboarding/onboarding-shell';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings } from '@/foundation/contracts';
+
+// Resolve the lazy native mock before Jest starts timing individual tests.
+void ScrollView;
 
 afterEach(() => { jest.restoreAllMocks(); });
 

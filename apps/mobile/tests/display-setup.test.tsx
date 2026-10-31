@@ -8,6 +8,9 @@ import { ThemeStep } from '@/features/onboarding/theme-step';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings, type Settings } from '@/foundation/contracts';
 
+// Resolve the lazy native mock before Jest starts timing individual tests.
+void ScrollView;
+
 const originalWindow = Dimensions.get('window');
 
 afterEach(() => {
