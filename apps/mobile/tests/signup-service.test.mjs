@@ -10,7 +10,11 @@ import {
 
 const input = { firstName: '  Sam  ', email: '  sam@example.com ', password: ' pass word ' };
 
-/** Fake client that records every signUp call and returns `response`. */
+/**
+ * Fake Supabase auth client that records every signUp call.
+ * @param {object | ((credentials: object) => object | Promise<object>)} response
+ *   Static response, or a callback that builds the response from the signup credentials.
+ */
 function fakeClient(response) {
   const calls = [];
   return {
