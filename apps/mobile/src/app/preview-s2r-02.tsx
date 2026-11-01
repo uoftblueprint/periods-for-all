@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { getAppearance } from '@/features/settings/appearance';
-import { defaultSettings } from '@/foundation/contracts';
-import { FontSizeStep, type ExtendedTextSize, EXTENDED_FONT_SCALE } from '@/features/onboarding/font-size-step';
+import { defaultSettings, type Settings } from '@/foundation/contracts';
+import { FontSizeStep } from '@/features/onboarding/font-size-step';
 import { MotionStep } from '@/features/onboarding/motion-step';
 
 /**
@@ -12,15 +12,10 @@ import { MotionStep } from '@/features/onboarding/motion-step';
  */
 export default function PreviewS2R02() {
   const [tab, setTab] = useState<'font' | 'motion'>('font');
-  const [textSize, setTextSize] = useState<ExtendedTextSize>('standard');
+  const [textSize, setTextSize] = useState<Settings['textSize']>('standard');
   const [reduceMotion, setReduceMotion] = useState(false);
 
-  // Build appearance using the extended scale so the preview reflects the chosen size.
-  const appearance = {
-    ...getAppearance(defaultSettings),
-    fontScale: EXTENDED_FONT_SCALE[textSize],
-    reduceMotion,
-  };
+  const appearance = getAppearance({ ...defaultSettings, textSize, reduceMotion });
 
   return (
     <View style={styles.root}>

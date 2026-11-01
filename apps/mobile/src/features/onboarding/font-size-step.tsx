@@ -1,17 +1,11 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Spacing } from '@/constants/theme';
+import { FontScale, Spacing } from '@/constants/theme';
+import type { Settings } from '@/foundation/contracts';
 import type { Appearance } from '@/features/settings/appearance';
 
-// Temporary extended text sizes until S2R-01 merges into contracts.ts.
-export type ExtendedTextSize = 'standard' | 'large' | 'extraLarge' | 'largest';
-export const EXTENDED_FONT_SCALE: Record<ExtendedTextSize, number> = {
-  standard: 1,
-  large: 1.25,
-  extraLarge: 1.5,
-  largest: 1.75,
-};
+type TextSize = Settings['textSize'];
 
-const choices: { key: ExtendedTextSize; label: string }[] = [
+const choices: { key: TextSize; label: string }[] = [
   { key: 'standard', label: 'Standard (1x)' },
   { key: 'large', label: 'Large (1.25x)' },
   { key: 'extraLarge', label: 'Extra Large (1.5x)' },
@@ -19,15 +13,15 @@ const choices: { key: ExtendedTextSize; label: string }[] = [
 ];
 
 export type FontSizeStepProps = {
-  value: ExtendedTextSize;
-  onChange: (size: ExtendedTextSize) => void;
+  value: TextSize;
+  onChange: (size: TextSize) => void;
   appearance: Appearance;
 };
 
 /** Onboarding step: pick a text size from four labelled choices with a live sample. */
 export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps) {
   const { colors } = appearance;
-  const previewScale = EXTENDED_FONT_SCALE[value];
+  const previewScale = FontScale[value];
 
   return (
     <ScrollView
@@ -55,7 +49,7 @@ export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps)
               onPress={() => onChange(key)}
               accessibilityRole="radio"
               accessibilityLabel={label}
-              accessibilityState={{ selected }}
+              accessibilityState={{ checked: selected }}
               style={[
                 styles.choice,
                 {
@@ -64,7 +58,7 @@ export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps)
                 },
               ]}
             >
-              <Text style={{ color: colors.text, fontSize: 16 * EXTENDED_FONT_SCALE[key] }}>
+              <Text style={{ color: colors.text, fontSize: 16 * FontScale[key] }}>
                 {label}
               </Text>
             </Pressable>
