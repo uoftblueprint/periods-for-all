@@ -18,8 +18,8 @@ export const textSizes = ['standard', 'large', 'extraLarge', 'largest'] as const
 export const colorSchemes = ['light', 'dark', 'highContrast'] as const;
 
 export type Settings = {
-  textSize: 'standard' | 'large' | 'extraLarge' | 'largest';
-  colorScheme: 'light' | 'dark' | 'highContrast';
+  textSize: (typeof textSizes)[number];
+  colorScheme: (typeof colorSchemes)[number];
   reduceMotion: boolean;
 };
 export const defaultSettings: Settings = {

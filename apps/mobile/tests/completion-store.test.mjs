@@ -90,6 +90,22 @@ test('a storage write failure reaches the caller unchanged', async () => {
   );
 });
 
+test(`non-string user ID 67 is rejected before storage`, async () => {
+  let calls = 0;
+    const completionStore = createCompletionStore({
+      async getItem() {
+        calls += 1;
+        return null;
+      },
+      async setItem() {
+        calls += 1;
+      },
+    });
+    await assert.rejects(completionStore.isComplete(67), /User ID must be a valid string/);
+    assert.equal(calls, 0);
+
+})
+
 for (const userId of ['', '   ', '\t\n']) {
   test(`the empty user ID ${JSON.stringify(userId)} is rejected before storage`, async () => {
     let calls = 0;
