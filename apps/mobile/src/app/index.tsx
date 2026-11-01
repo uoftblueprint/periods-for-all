@@ -7,6 +7,7 @@ export default function StartScreen() {
     <PreviewScreen title="Developer starting point">
       <Text>Component previews use separate demo accounts.</Text>
       <Link href="/login">Open login.</Link>
+      <Link href="/signup">Open signup preview</Link>
       <Link href="/settings">Open settings.</Link>
       <Link href="/home">Open home.</Link>
       <Text>Sign-in required.</Text>
