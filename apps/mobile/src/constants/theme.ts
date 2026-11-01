@@ -29,6 +29,14 @@ export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
   },
+  highContrast: {
+    // temporary high-contrast palette for internal preview. 
+    text: '#000000',
+    background: '#FFFFFF',
+    backgroundElement: '#E6E6E6',
+    backgroundSelected: '#86def0ff',
+    textSecondary: '#1A1A1A',
+  },
 };
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
@@ -72,6 +80,8 @@ export const Spacing = {
 export const FontScale: Readonly<Record<Settings['textSize'], number>> = {
   standard: 1,
   large: 1.25,
+  extraLarge: 1.5,
+  largest: 1.75,
 };
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
