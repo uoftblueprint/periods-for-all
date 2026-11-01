@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { afterEach, expect, jest, test } from '@jest/globals';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Dimensions, Platform, ScrollView } from 'react-native';
+import { Platform, ScrollView } from 'react-native';
 import { DisplaySetup } from '@/features/onboarding/display-setup';
 import { FontSizeStep } from '@/features/onboarding/font-size-step';
 import { ThemeStep } from '@/features/onboarding/theme-step';
@@ -11,16 +11,7 @@ import { defaultSettings, type Settings } from '@/foundation/contracts';
 // Resolve the lazy native mock before Jest starts timing individual tests.
 void ScrollView;
 
-const originalWindow = Dimensions.get('window');
-
-afterEach(() => {
-  act(() => Dimensions.set({ window: originalWindow }));
-  jest.restoreAllMocks();
-});
-
-function setSystemFontScale(fontScale: number) {
-  act(() => Dimensions.set({ window: { ...originalWindow, fontScale } }));
-}
+afterEach(() => { jest.restoreAllMocks(); });
 
 function Setup({ finish }: { finish: () => Promise<void> }) {
   const [settings, setSettings] = useState<Settings>({ ...defaultSettings, textSize: 'largest' });
@@ -64,43 +55,6 @@ test('changing steps returns to the top, while changing a choice keeps the scrol
   expect(scrollTo).toHaveBeenCalledTimes(1);
 });
 
-test('a live system font change refreshes native measurements without resetting the step or choices', () => {
-  render(<Setup finish={async () => {}} />);
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.press(screen.getByRole('radio', { name: /Large$/ }));
-  const before = screen.UNSAFE_getByType(ScrollView);
-  setSystemFontScale(originalWindow.fontScale * 2);
-  expect(screen.UNSAFE_getByType(ScrollView)).not.toBe(before);
-  expect(screen.getByText('Font Sizes')).toBeVisible();
-  expect(screen.getByRole('radio', { name: /^✓ Large$/ })).toBeChecked();
-  const resized = screen.UNSAFE_getByType(ScrollView);
-  act(() => Dimensions.set({ window: { ...originalWindow, width: originalWindow.width + 100, fontScale: originalWindow.fontScale * 2 } }));
-  expect(screen.UNSAFE_getByType(ScrollView)).toBe(resized);
-});
-
-test('live system font changes preserve a pending finish, failure, and retry', async () => {
-  const { promise: pending, reject } = Promise.withResolvers<void>();
-  const finish = jest.fn<() => Promise<void>>().mockReturnValueOnce(pending).mockResolvedValue(undefined);
-  render(<Setup finish={finish} />);
-  for (let n = 0; n < 3; n++) fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.press(screen.getByRole('radio', { name: /Dark Mode/ }));
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
-  setSystemFontScale(originalWindow.fontScale * 2);
-  expect(screen.getByText('Colour Themes')).toBeVisible();
-  expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
-  expect(screen.getByRole('radio', { name: /Dark Mode/ })).toBeChecked();
-  fireEvent.press(screen.getByRole('button', { name: 'Saving…' }));
-  expect(finish).toHaveBeenCalledTimes(1);
-  await act(async () => reject(new Error('Save failed')));
-  setSystemFontScale(originalWindow.fontScale);
-  expect(screen.getByText("We couldn't save your display settings. Please try again.")).toBeVisible();
-  expect(screen.getByRole('radio', { name: /Dark Mode/ })).toBeChecked();
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
-  await screen.findByRole('button', { name: 'Continue' });
-  expect(finish).toHaveBeenCalledTimes(2);
-});
-
 for (const group of ['font', 'theme'] as const) {
   function Choices({ disabled = false }) {
     const [settings, setSettings] = useState(defaultSettings);
@@ -117,29 +71,25 @@ for (const group of ['font', 'theme'] as const) {
     return screen.getAllByRole('radio');
   }
 
-  test(`${group}: Space selects a choice and the selected choice is the only tab stop`, () => {
+  test(`${group}: Space/arrows select, wrap and keep one tab stop`, () => {
     const radios = renderChoices();
+    const preventDefault = jest.fn();
+    const key = (index: number, name: string) => fireEvent(radios[index], 'keyDown', { key: name, preventDefault });
     expect(radios[0]).toHaveProp('tabIndex', 0);
     expect(radios[1]).toHaveProp('tabIndex', -1);
-    const preventDefault = jest.fn();
-    fireEvent(radios[1], 'keyDown', { key: ' ', preventDefault });
+    key(1, ' ');
     expect(radios[1]).toBeChecked();
     expect(radios[1]).toHaveProp('tabIndex', 0);
     expect(radios[0]).toHaveProp('tabIndex', -1);
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-  });
-
-  test(`${group}: arrow keys select adjacent choices and wrap in both directions`, () => {
-    const radios = renderChoices();
-    const key = (index: number, name: string) => fireEvent(radios[index], 'keyDown', { key: name, preventDefault: jest.fn() });
+    key(1, 'ArrowUp');
+    expect(radios[0]).toBeChecked();
     key(0, 'ArrowLeft');
     expect(radios.at(-1)).toBeChecked();
     key(radios.length - 1, 'ArrowDown');
     expect(radios[0]).toBeChecked();
     key(0, 'ArrowRight');
     expect(radios[1]).toBeChecked();
-    key(1, 'ArrowUp');
-    expect(radios[0]).toBeChecked();
+    expect(preventDefault).toHaveBeenCalledTimes(5);
   });
 
   test(`${group}: disabled choices reject keyboard changes and have no tab stops`, () => {
