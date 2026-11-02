@@ -1,44 +1,60 @@
 # Sprint 1 demo results
 
-**Date:** 2026-10-18
-**Platform:** Web (Chrome, Windows 11)
-**Auth:** Fake (no Supabase, no real credentials)
-**Storage:** Preview only (in-memory, resets on reload)
+## Status: partial verification; connected demo remains open
 
-## Pre-demo checks
+Updated November 1, 2026. This report records completed checks and outstanding
+work. Merging the report does not complete F19 (#23) or certify the full app demo.
 
-| Check | Result | Notes |
+## Current automated checks — November 1
+
+Checked the F19 branch after merging main at `48cd5ee` in a temporary checkout.
+Auth/network responses in these tests are fakes; no live Supabase account was
+used. Storage unit checks use fake/injected storage and do not prove retention
+through an actual app restart.
+
+| Check | Result | Evidence / limit |
 | --- | --- | --- |
-| `npm run typecheck --workspace=mobile` | FAIL | 2 pre-existing errors: F04 route types (`/auth-preview`), F01 missing `settings-storage` module (from F18) |
-| `npm test --workspace=mobile` | PASS | 19/19 tests pass (demo-auth, settings-helpers, supabase-auth-adapter) |
+| `npm run typecheck --workspace=mobile` | PASS | No TypeScript errors. |
+| `npm run test:services --workspace=mobile` | PASS | 153 tests passed; none failed or skipped. |
+| `npm run test:components --workspace=mobile` | PASS | 34 tests across 6 suites passed. |
+| Login/provider behavior | PASS (automated only) | Existing service and component tests pass; real-account journey not rerun. |
+| Protected Home route | Present in code; manual check pending | Root layout guards Home with signed-in status. The earlier unprotected-Home note is obsolete. |
+| Settings controls and storage helpers | PASS (automated only) | Existing checks pass; helper tests do not prove connected persistence. |
 
-## Demo flow
+## Earlier manual preview checks — Ethan, October 18
 
-| Step | Description | Result | Notes |
-| --- | --- | --- | --- |
-| 1 | Home page shows links to all preview routes | PASS | |
-| 2 | Login preview: success with correct credentials | PASS | Used demo@example.com / demo-only |
-| 3 | Login preview: wrong password shows error and recovery | PASS | Error message displayed, form recovers after failure |
-| 4 | Login preview: empty fields show validation | PASS | |
-| 5 | Settings preview: controls work | PASS | Text size, color scheme, and reduce motion controls all respond correctly |
-| 6 | Settings preview: preferences not saved on reload | PASS | Preview uses in-memory state, resets on reload as expected |
-| 7 | Component playground: fake-success and fake-error actions | PASS | Status messages display correctly |
-| 8 | Component playground: button disabled/busy states | PASS | Disabled and busy buttons correctly ignore presses |
-| 9 | Keyboard accessibility | PASS | Tab navigation works on login and playground |
+Platform: web, Chrome on Windows 11. Auth: fake account. Storage: temporary
+in-memory settings preview. These are historical observations, not a November 1
+manual rerun or evidence of a real-account/device demo.
 
-## Checklist
+| Check | Historical result |
+| --- | --- |
+| Demo login succeeds; wrong password and empty inputs show errors | PASS |
+| Text size, colour scheme, and reduced-motion controls respond | PASS |
+| Playground fake success/error and disabled/busy buttons | PASS |
+| Keyboard navigation on login and playground | PASS |
 
-- [x] The login account is fake: no network call occurs, and no password is kept
-- [x] Settings state is temporary and resets on reload (preview uses in-memory state)
-- [x] The home screen is a placeholder and is intentionally reachable without login
-- [x] No Supabase account, environment variables, or Docker setup is required for this demo
-- [x] All features work correctly to their description
-- [x] All features have accessibility labels, roles, hints, and states where appropriate
+The preview reset its settings on reload. That is a limitation of the preview,
+not a pass for the sprint's preference-retention requirement. Earlier counts of
+19 tests and the reported TypeScript failures have been superseded by the
+November 1 automated results above.
 
-## Blocked items
+## Remaining integrated checklist
 
-None. All previously blocked items (settings controls from F11) are now resolved.
+| Checklist item from SPRINT_1_DEMO.md | Status | Follow-up |
+| --- | --- | --- |
+| Real synthetic-account sign-in, rejected sign-in, sign-out, and protected-route journey | NOT RERUN | Ethan reruns against the agreed development backend/build; record platform, build and result. |
+| Saved preferences applied across the connected app and restored after restart | BLOCKED | Nick's S2R-07, PR #67, owns connecting SettingsProvider, storage and routes. After it merges, Ethan verifies change → close/reopen → retained appearance, including failure/retry. |
+| Screen-reader labels, states and operation throughout the integrated flow | PENDING | Automated attributes are not a substitute for VoiceOver/device checks. Record the actual checks and any limitations. |
+| Large text, colour/motion behavior, email keyboard, password masking and repeated-submit behavior on the agreed device | PENDING | Feature tests provide supporting evidence; complete the device walkthrough and record pass/fail/blocked for each item. |
 
-## Summary
+PR #67: https://github.com/uoftblueprint/periods-for-all/pull/67
+F19: https://github.com/uoftblueprint/periods-for-all/issues/23
 
-All demo steps pass. Login, settings, and component playground work as expected. Settings controls (text size, color scheme, reduce motion) respond correctly in the preview. Preferences use in-memory state and reset on reload.
+## Handoff
+
+Nick owns the settings/route integration in #67; F19 does not duplicate that
+implementation. Ethan remains responsible for rerunning and updating the
+integrated demo results after that dependency merges, with feature owners fixing
+any defects found. Keep #23 open until the remaining demo checks have recorded
+results and Jamie accepts the outcome. Use synthetic data only.
