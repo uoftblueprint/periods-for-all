@@ -5,7 +5,7 @@ import type { AppButtonProps } from '../foundation/contracts';
 
 /**
  * A simple button component that can be used throughout the app. It supports a label, onPress handler, disabled state, and busy state.
- * 
+ *
  * @components
  * @param {AppButtonProps} props - The properties for the button component, including label, onPress handler, disabled state, and busy state.
  * @param {string} props.label - The text label for the button.
@@ -16,13 +16,13 @@ import type { AppButtonProps } from '../foundation/contracts';
  */
 export function AppButton({ label, onPress, disabled = false, busy = false, appearance }: AppButtonProps & { appearance?: Appearance }) {
     return (
-        <Pressable 
-            onPress={onPress} 
-            disabled={disabled || busy} 
-            accessibilityRole="button" 
+        <Pressable
+            onPress={onPress}
+            disabled={disabled || busy}
+            accessibilityRole="button"
             accessibilityLabel={label}
             aria-busy={busy}
-            accessibilityState={{disabled: disabled || busy, busy}} 
+            accessibilityState={{disabled: disabled || busy, busy}}
             style={({ pressed }) => [{
                 backgroundColor: appearance?.colors.backgroundElement,
                 minHeight: 44,
