@@ -1,12 +1,14 @@
 
 import { expect, jest, test } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { Alert, ScrollView } from 'react-native';
 
 import ThemePreview from '@/app/theme-preview';
 import { ThemeStep } from '@/features/onboarding/theme-step';
 import { defaultSettings } from '@/foundation/contracts';
 import { getAppearance } from '@/features/settings/appearance';
+import * as appearanceModule from '@/features/settings/appearance';
 
 const mockRouter = {
   canGoBack: jest.fn(() => true),
@@ -84,10 +86,63 @@ test('theme step only shows supported theme choices with large text', () => {
     />
   );
 
-  expect(screen.getAllByRole('radio')).toHaveLength(2);
-  expect(screen.queryByRole('radio', { name: 'High Contrast' })).toBeNull();
+  expect(screen.getAllByRole('radio')).toHaveLength(3);
+  expect(screen.getByRole('radio', { name: 'High Contrast', checked: false })).toBeTruthy();
+  expect(screen.getByText('Dark Mode')).toHaveStyle({ fontSize: 20 });
   expect(screen.queryAllByRole('button')).toHaveLength(0);
   expect(screen.queryByRole('header')).toBeNull();
+});
+
+test('preview immediately applies each selected palette and preserves the default font scale', () => {
+  const preview = render(<ThemePreview />);
+
+  for (const [scheme, label, statusBarStyle] of [
+    ['light', 'Default', 'dark'],
+    ['dark', 'Dark Mode', 'light'],
+    ['highContrast', 'High Contrast', 'dark'],
+    ['light', 'Default', 'dark'],
+  ] as const) {
+    fireEvent.press(screen.getByRole('radio', { name: label }));
+
+    const { colors, fontScale } = getAppearance({ ...defaultSettings, colorScheme: scheme });
+    expect(screen.getByRole('radio', { name: label, checked: true })).toBeTruthy();
+    expect(preview.UNSAFE_getByType(ScrollView).props.style).toEqual({ backgroundColor: colors.background });
+    expect(preview.UNSAFE_getByType(StatusBar).props.style).toBe(statusBarStyle);
+    expect(screen.getByRole('header')).toHaveStyle({ color: colors.text, fontSize: 22 * fontScale });
+    expect(screen.getByRole('button', { name: 'Go back' })).toHaveStyle({
+      backgroundColor: colors.backgroundElement,
+      borderColor: colors.textSecondary,
+    });
+    expect(screen.getByRole('button', { name: 'Continue to Period Information' })).toHaveStyle({
+      backgroundColor: colors.text,
+    });
+    expect(screen.getByText('Continue to Period Information')).toHaveStyle({
+      color: colors.background,
+      fontSize: 16 * fontScale,
+      lineHeight: 22 * fontScale,
+    });
+    expect(screen.getByText('Skip for now')).toHaveStyle({ color: colors.text });
+  }
+});
+
+test.each([
+  ['#333333', 'light'],
+  ['#777777', 'dark'],
+  ['#eeeeee', 'dark'],
+])('preview chooses status bar icons from background %s independently of the theme name', (background, expectedStyle) => {
+  const appearance = getAppearance(defaultSettings);
+  const mockAppearance = jest.spyOn(appearanceModule, 'getAppearance').mockReturnValue({
+    ...appearance,
+    colors: { ...appearance.colors, background },
+  });
+
+  try {
+    const preview = render(<ThemePreview />);
+    expect(screen.getByRole('radio', { name: 'Default', checked: true })).toBeTruthy();
+    expect(preview.UNSAFE_getByType(StatusBar).props.style).toBe(expectedStyle);
+  } finally {
+    mockAppearance.mockRestore();
+  }
 });
 
 test('preview owns theme state and onboarding navigation', () => {

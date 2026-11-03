@@ -19,7 +19,7 @@ const themeOptions: {
   label: string;
 }[] = [
   { value: 'light', label: 'Default' },
-  // { value: 'highContrast', label: 'High Contrast' }, commented out for now since its not a proper type/value yet
+  { value: 'highContrast', label: 'High Contrast' },
   { value: 'dark', label: 'Dark Mode' },
 ];
 
