@@ -153,9 +153,9 @@ function SignUpForm(props: SignupScreenProps) {
             }
 
             // Call the signUp function passed in props
-            const result = await props.signUp({ 
-                firstName: firstName.trim(), 
-                email: email.trim(), 
+            const result = await props.signUp({
+                firstName: firstName.trim(),
+                email: email.trim(),
                 password: password
             });
 
@@ -168,7 +168,7 @@ function SignUpForm(props: SignupScreenProps) {
                 setPassword(''); // Clear password for security
             } else if (result.status === 'error') {
                 setPasswordError(result.message);
-            } 
+            }
         } catch (error) {
             setPasswordError('An unexpected error occurred. Please try again.');
         } finally {
@@ -253,7 +253,7 @@ function SignUpForm(props: SignupScreenProps) {
                 }} />
 
             </View>
-       ) 
+       )
     }
 
     else if (state === 'password') {

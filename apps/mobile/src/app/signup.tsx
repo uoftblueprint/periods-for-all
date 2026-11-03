@@ -10,7 +10,7 @@ export default function SignUpScreenPreview() {
 
             }} onSignedIn={() => {
                 console.log('User signed in');
-                
+
             }} onBackToLogin={() => {
                 console.log('Back to login');
                 router.replace('/login');

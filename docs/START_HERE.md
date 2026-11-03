@@ -7,7 +7,7 @@ No new packages are required. Run the commands in the [README](../README.md).
 
 - `/`: links to each independent preview.
 - `/login`: shows `LoginScreen` using the shared sign-in service.
-- `/settings`: mounts `SettingsScreen` with editable, temporary state.
+- `/settings`: edits the preferences shared by the settings provider and saves them on this device.
 - `/home`: a development home screen that requires sign-in.
 - `/playground`: a working example of fake success/error responses, and space to try a component.
 
@@ -66,7 +66,32 @@ They do not write storage. The later storage module exports
 `saveSettings(settings: Settings): Promise<void>`; null means no saved preferences.
 It validates loaded values against `Settings`. The integration owner handles loading
 and failures. Applying preferences across the app and saving them are still separate
-product work; the current route holds only temporary local state.
+product work; the local S2R-07 integration connects the route to the existing provider.
+
+## Local onboarding integration (S2R-07)
+
+The development shell keeps its navigator mounted while the onboarding gate hides
+protected content during loading, errors and setup. Preferences are device-wide;
+setup completion is stored per account. The production guard is unchanged.
+`/onboarding-preview` uses the same gate and setup flow with fake services and
+controls for delayed or failed operations. Simulated reopening keeps fake records;
+reloading the browser clears them.
+
+The settings provider preserves `settings`, `error` and `updateSettings(patch)`.
+It also exposes `isLoading`, `loadError` and `retryLoad()`. A read failure blocks
+setup until retry succeeds. Updates remain optimistic and serialized, including
+updates made during loading, but their promises now reject on persistence failure.
+Callers must handle that rejection. A failed save does not prevent later saves.
+
+Expo 57.0.25 currently fails to bundle the SQLite web worker with lazy Metro
+bundling in this checkout. For local web checks, use:
+
+```sh
+EXPO_NO_METRO_LAZY=1 npm run web --workspace=mobile -- --port 8085
+```
+
+This uses an existing Expo CLI option; it adds no package or bundler modification.
+Real authentication still requires the existing local Supabase configuration.
 
 **Button/input:** Use the exported prop types. A busy button must prevent repeated
 presses, and inputs must retain their visible labels. Screens can temporarily use
@@ -76,10 +101,9 @@ the same data flow. Replacing them later is an integration check, not proof they
 ## Checking your work
 
 Run `npm run typecheck --workspace=mobile` and `npm test --workspace=mobile` from
-the repo root. The starter includes three small tests for the fake service using
-Node's built-in runner. React Native component tests need an agreed compatible test
-setup later; do not independently install competing frameworks. Existing `expo lint`
-is not a configured check yet.
+the repo root. The existing test command runs service tests with Node's built-in
+runner and component tests with Jest/React Native Testing Library. Reuse these tools;
+no new test packages are needed. Existing `expo lint` is not a configured check yet.
 
 For each feature, try its normal behavior, an error case and relevant accessibility
 behavior. Add meaningful automated tests when the shared tools support that feature.
