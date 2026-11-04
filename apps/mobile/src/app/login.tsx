@@ -1,4 +1,4 @@
-import { Redirect } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { Text } from 'react-native';
 import { LoginScreen } from '@/features/auth/login-screen';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -14,6 +14,7 @@ export default function LoginRoute() {
         : 'Use demo@example.com with password demo-only. Reloading the app signs you out.'}</Text>
       {/* Routes follow the shared session, not this callback. */}
       <LoginScreen signIn={signIn} onSignedIn={() => {}} />
+      <Link href="/signup">Create account</Link>
     </PreviewScreen>
   );
 }
