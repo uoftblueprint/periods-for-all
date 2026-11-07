@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react-native';
+import { BackHandler, type HardwareBackPressEvent } from 'react-native';
 
 import {
   PeriodDateEditor,
@@ -81,6 +82,8 @@ test('Save Dates sends only the draft difference and calls onDone', async () => 
   fireEvent.press(day(4));
 
   fireEvent.press(screen.getByText('Save Dates'));
+  expect(props.onSave).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByText('Remove and Save'));
 
   await waitFor(() => expect(props.onSave).toHaveBeenCalledWith({
     add: ['2026-11-04'],
@@ -99,6 +102,47 @@ test('Cancel discards through onCancel without saving', () => {
   expect(props.onSave).not.toHaveBeenCalled();
 });
 
+test('removing a saved date requires confirmation and explains symptoms stay', () => {
+  const props = setup();
+  fireEvent.press(day(2));
+
+  fireEvent.press(screen.getByText('Save Dates'));
+
+  expect(screen.getByText('Remove saved period dates?')).toBeTruthy();
+  expect(screen.getByText(/Symptoms recorded on those dates will stay/))
+    .toBeTruthy();
+  expect(props.onSave).not.toHaveBeenCalled();
+
+  fireEvent.press(screen.getByText('Keep Dates'));
+
+  expect(screen.queryByText('Remove saved period dates?')).toBeNull();
+  expect(day(2).props.accessibilityState.selected).toBe(false);
+  expect(props.onSave).not.toHaveBeenCalled();
+});
+
+test('hardware Back discards through onCancel without saving', () => {
+  let hardwareBack: ((event: HardwareBackPressEvent) => (
+    boolean | null | undefined
+  )) | undefined;
+  const subscription = { remove: jest.fn() };
+  const listener = jest.spyOn(BackHandler, 'addEventListener')
+    .mockImplementation((_event, handler) => {
+      hardwareBack = handler;
+      return subscription;
+    });
+  const props = setup();
+  fireEvent.press(day(2));
+
+  expect(hardwareBack?.({
+    type: 'hardwareBackPress',
+    timeStamp: 0,
+  })).toBe(true);
+
+  expect(props.onCancel).toHaveBeenCalledTimes(1);
+  expect(props.onSave).not.toHaveBeenCalled();
+  listener.mockRestore();
+});
+
 test('a failed save retains the draft and shows the required message', async () => {
   const props = setup({
     onSave: jest.fn(async () => {
@@ -108,10 +152,61 @@ test('a failed save retains the draft and shows the required message', async () 
   fireEvent.press(day(2));
 
   fireEvent.press(screen.getByText('Save Dates'));
+  fireEvent.press(screen.getByText('Remove and Save'));
 
   expect(await screen.findByText('Could not save dates. Try again.'))
     .toBeTruthy();
   expect(day(2).props.accessibilityState.selected).toBe(false);
+  expect(props.onDone).not.toHaveBeenCalled();
+});
+
+test('repeated Save presses submit once and call onDone once', async () => {
+  const pendingSave = deferred<void>();
+  const props = setup({
+    onSave: jest.fn(() => pendingSave.promise),
+  });
+  fireEvent.press(day(4));
+  const saveButton = screen.getByText('Save Dates');
+
+  fireEvent.press(saveButton);
+  fireEvent.press(saveButton);
+
+  expect(props.onSave).toHaveBeenCalledTimes(1);
+  expect(screen.getByText('Saving…')).toBeTruthy();
+
+  await act(async () => {
+    pendingSave.resolve(undefined);
+    await pendingSave.promise;
+  });
+
+  await waitFor(() => expect(props.onDone).toHaveBeenCalledTimes(1));
+  fireEvent.press(screen.getByText('Save Dates'));
+  expect(props.onSave).toHaveBeenCalledTimes(1);
+  expect(props.onDone).toHaveBeenCalledTimes(1);
+});
+
+test('a save resolving after unmount does not call onDone', async () => {
+  const pendingSave = deferred<void>();
+  const props: PeriodDateEditorProps = {
+    initialDates: [],
+    initialMonth: '2026-11',
+    today: '2026-11-07',
+    appearance: getAppearance(defaultSettings),
+    loadDates: jest.fn(async () => []),
+    onSave: jest.fn(() => pendingSave.promise),
+    onDone: jest.fn(),
+    onCancel: jest.fn(),
+  };
+  const view = render(<PeriodDateEditor {...props} />);
+  fireEvent.press(day(4));
+  fireEvent.press(screen.getByText('Save Dates'));
+
+  view.unmount();
+  await act(async () => {
+    pendingSave.resolve(undefined);
+    await pendingSave.promise;
+  });
+
   expect(props.onDone).not.toHaveBeenCalled();
 });
 
@@ -159,6 +254,7 @@ test('draft changes survive month navigation and loaded months are cached', asyn
   expect(props.loadDates).toHaveBeenCalledTimes(1);
 
   fireEvent.press(screen.getByText('Save Dates'));
+  fireEvent.press(screen.getByText('Remove and Save'));
   await waitFor(() => expect(props.onSave).toHaveBeenCalledWith({
     add: ['2026-12-04'],
     remove: ['2026-11-02'],

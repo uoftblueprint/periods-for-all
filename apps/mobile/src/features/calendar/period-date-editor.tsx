@@ -6,7 +6,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  BackHandler,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import type { LocalDate } from '@/features/health/contracts';
@@ -26,6 +33,7 @@ import {
   isDraftDateSelected,
   isSelectablePeriodDate,
   setDraftDateSelected,
+  type PeriodDateChange,
 } from './period-date-editor-state';
 
 const PRIMARY = '#A90D02';
@@ -72,11 +80,16 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
   >(() => validInitialMonth ? { [props.initialMonth]: 'loaded' } : {});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [pendingRemovalChange, setPendingRemovalChange] = useState<
+    PeriodDateChange | null
+  >(null);
   const loadedMonths = useRef(new Set(
     validInitialMonth ? [props.initialMonth] : [],
   ));
   const loadingMonths = useRef(new Set<string>());
   const mounted = useRef(true);
+  const saveInFlight = useRef(false);
+  const doneCalled = useRef(false);
   const parsedMonth = parseMonth(currentMonth);
   const monthStatus = monthStatuses[currentMonth];
   const monthLoaded = monthStatus === 'loaded';
@@ -88,6 +101,22 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
       mounted.current = false;
     };
   }, []);
+
+  const cancel = useCallback(() => {
+    if (saveInFlight.current) return;
+    props.onCancel();
+  }, [props.onCancel]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        cancel();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [cancel]);
 
   const selectedDates = useMemo(() => {
     const knownDates = new Set([...savedDates, ...overrides.keys()]);
@@ -142,7 +171,8 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
   };
 
   const changeDate = (date: LocalDate, selected: boolean) => {
-    if (!monthLoaded || !isSelectablePeriodDate(date, props.today)) return;
+    if (saveInFlight.current || !monthLoaded
+      || !isSelectablePeriodDate(date, props.today)) return;
     setSaveError(null);
     setOverrides((current) => setDraftDateSelected(
       savedDates,
@@ -152,19 +182,43 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
     ));
   };
 
-  const save = async () => {
-    if (saving) return;
+  const submitChange = async (change: PeriodDateChange) => {
+    if (saveInFlight.current || doneCalled.current) return;
+    saveInFlight.current = true;
     setSaving(true);
     setSaveError(null);
 
     try {
-      await props.onSave(getPeriodDateChange(savedDates, overrides));
-      props.onDone();
+      await props.onSave(change);
+      if (mounted.current && !doneCalled.current) {
+        doneCalled.current = true;
+        props.onDone();
+      }
     } catch {
-      setSaveError('Could not save dates. Try again.');
+      if (mounted.current) {
+        setSaveError('Could not save dates. Try again.');
+      }
     } finally {
-      setSaving(false);
+      saveInFlight.current = false;
+      if (mounted.current) setSaving(false);
     }
+  };
+
+  const requestSave = () => {
+    if (!monthLoaded || saveInFlight.current || doneCalled.current) return;
+    const change = getPeriodDateChange(savedDates, overrides);
+    if (change.remove.length > 0) {
+      setPendingRemovalChange(change);
+      return;
+    }
+    void submitChange(change);
+  };
+
+  const confirmRemoval = () => {
+    if (!pendingRemovalChange) return;
+    const change = pendingRemovalChange;
+    setPendingRemovalChange(null);
+    void submitChange(change);
   };
 
   return (
@@ -322,18 +376,75 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
           appearance={props.appearance}
           disabled={saving}
           label="Cancel"
-          onPress={props.onCancel}
+          onPress={cancel}
           variant="secondary"
         />
         <FooterButton
           appearance={props.appearance}
           busy={saving}
-          disabled={!monthLoaded}
+          disabled={!monthLoaded || pendingRemovalChange !== null}
           label={saving ? 'Saving…' : 'Save Dates'}
-          onPress={save}
+          onPress={requestSave}
           variant="primary"
         />
       </View>
+
+      <Modal
+        animationType={props.appearance.reduceMotion ? 'none' : 'fade'}
+        onRequestClose={cancel}
+        transparent
+        visible={pendingRemovalChange !== null}>
+        <View
+          style={{
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            flex: 1,
+            justifyContent: 'center',
+            padding: Spacing.four,
+          }}>
+          <View
+            accessibilityRole="alert"
+            accessibilityViewIsModal
+            style={{
+              backgroundColor: colors.background,
+              borderColor: colors.backgroundElement,
+              borderRadius: 16,
+              borderWidth: 1,
+              gap: Spacing.three,
+              maxWidth: 520,
+              padding: Spacing.four,
+              width: '100%',
+            }}>
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: colors.text,
+                fontSize: 20 * fontScale,
+                fontWeight: '700',
+              }}>
+              Remove saved period dates?
+            </Text>
+            <Text style={{ color: colors.text, fontSize: 16 * fontScale }}>
+              The dates will be removed from your period history. Symptoms
+              recorded on those dates will stay.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+              <FooterButton
+                appearance={props.appearance}
+                label="Keep Dates"
+                onPress={() => setPendingRemovalChange(null)}
+                variant="secondary"
+              />
+              <FooterButton
+                appearance={props.appearance}
+                label="Remove and Save"
+                onPress={confirmRemoval}
+                variant="primary"
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
