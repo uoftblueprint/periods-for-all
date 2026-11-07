@@ -1,5 +1,11 @@
 import { expect, jest, test } from '@jest/globals';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 
 import {
   PeriodDateEditor,
@@ -24,6 +30,16 @@ function setup(overrides: Partial<PeriodDateEditorProps> = {}) {
   return props;
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((nextResolve, nextReject) => {
+    resolve = nextResolve;
+    reject = nextReject;
+  });
+  return { promise, reject, resolve };
+}
+
 const day = (date: number) => screen.getByLabelText(
   new RegExp(`November ${date}, 2026`),
 );
@@ -36,11 +52,11 @@ test('renders the Figma editor shell for the supplied month', () => {
   expect(screen.getByText('Cancel')).toBeTruthy();
   expect(screen.getByText('Save Dates')).toBeTruthy();
   expect(screen.getByLabelText('Go to today').props.accessibilityState.disabled)
-    .toBe(true);
+    .toBe(false);
   expect(screen.getByLabelText('Previous month').props.accessibilityState.disabled)
-    .toBe(true);
+    .toBe(false);
   expect(screen.getByLabelText('Next month').props.accessibilityState.disabled)
-    .toBe(true);
+    .toBe(false);
 });
 
 test('editing dates updates the draft without mutating the supplied dates', () => {
@@ -97,4 +113,106 @@ test('a failed save retains the draft and shows the required message', async () 
     .toBeTruthy();
   expect(day(2).props.accessibilityState.selected).toBe(false);
   expect(props.onDone).not.toHaveBeenCalled();
+});
+
+test('a newly visited month loads before its dates can be edited', async () => {
+  const december = deferred<string[]>();
+  const loadDates = jest.fn(() => december.promise);
+  setup({
+    today: '2026-12-31',
+    loadDates,
+  });
+
+  fireEvent.press(screen.getByLabelText('Next month'));
+
+  expect(screen.getByText('December 2026')).toBeTruthy();
+  expect(screen.getByText('Loading dates…')).toBeTruthy();
+  expect(loadDates).toHaveBeenCalledWith('2026-12-01', '2026-12-31');
+  expect(screen.getByLabelText(/December 2, 2026/).props.accessibilityState.disabled)
+    .toBe(true);
+
+  await act(async () => {
+    december.resolve(['2026-12-02']);
+    await december.promise;
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByText('Loading dates…')).toBeNull();
+    expect(screen.getByLabelText(/December 2, 2026/).props.accessibilityState)
+      .toEqual({ disabled: false, selected: true });
+  });
+});
+
+test('draft changes survive month navigation and loaded months are cached', async () => {
+  const props = setup({
+    today: '2026-12-31',
+    loadDates: jest.fn(async () => ['2026-12-03']),
+  });
+  fireEvent.press(day(2));
+
+  fireEvent.press(screen.getByLabelText('Next month'));
+  await screen.findByLabelText(/December 3, 2026, selected/);
+  fireEvent.press(screen.getByLabelText(/December 4, 2026/));
+  fireEvent.press(screen.getByLabelText('Previous month'));
+
+  expect(day(2).props.accessibilityState.selected).toBe(false);
+  expect(props.loadDates).toHaveBeenCalledTimes(1);
+
+  fireEvent.press(screen.getByText('Save Dates'));
+  await waitFor(() => expect(props.onSave).toHaveBeenCalledWith({
+    add: ['2026-12-04'],
+    remove: ['2026-11-02'],
+  }));
+});
+
+test('a failed month load keeps the grid disabled and Retry loads it again', async () => {
+  let attempts = 0;
+  const loadDates = jest.fn(async () => {
+    attempts += 1;
+    if (attempts === 1) throw new Error('demo read failure');
+    return ['2026-12-02'];
+  });
+  setup({ today: '2026-12-31', loadDates });
+
+  fireEvent.press(screen.getByLabelText('Next month'));
+
+  expect(await screen.findByText('Could not load dates. Try again.'))
+    .toBeTruthy();
+  const decemberSecond = screen.getByLabelText(/December 2, 2026/);
+  expect(decemberSecond.props.accessibilityState.disabled).toBe(true);
+  fireEvent.press(decemberSecond);
+
+  fireEvent.press(screen.getByText('Retry'));
+
+  await waitFor(() => {
+    expect(loadDates).toHaveBeenCalledTimes(2);
+    expect(screen.getByLabelText(/December 2, 2026/).props.accessibilityState)
+      .toEqual({ disabled: false, selected: true });
+  });
+});
+
+test('Today loads the supplied current month using local calendar dates', async () => {
+  const props = setup({
+    today: '2027-01-15',
+    loadDates: jest.fn(async () => []),
+  });
+
+  fireEvent.press(screen.getByLabelText('Go to today'));
+
+  expect(await screen.findByText('January 2027')).toBeTruthy();
+  expect(props.loadDates).toHaveBeenCalledWith('2027-01-01', '2027-01-31');
+});
+
+test('next month crosses December into January', async () => {
+  const props = setup({
+    initialDates: [],
+    initialMonth: '2026-12',
+    today: '2027-01-31',
+    loadDates: jest.fn(async () => []),
+  });
+
+  fireEvent.press(screen.getByLabelText('Next month'));
+
+  expect(await screen.findByText('January 2027')).toBeTruthy();
+  expect(props.loadDates).toHaveBeenCalledWith('2027-01-01', '2027-01-31');
 });
