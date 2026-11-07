@@ -65,6 +65,9 @@ test('future dates are disabled and cannot be selected', () => {
     disabled: true,
     selected: false,
   });
+  expect(day(8).props.accessibilityHint).toBe(
+    'This date cannot be changed right now',
+  );
   expect(props.onChangeDate).not.toHaveBeenCalled();
 });
 

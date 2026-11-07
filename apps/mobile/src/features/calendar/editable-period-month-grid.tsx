@@ -240,9 +240,13 @@ function EditableDayCell({
 
   return (
     <Pressable
-      accessibilityHint={selected
-        ? 'Removes this period date'
-        : 'Adds this period date'}
+      accessibilityHint={
+        disabled
+          ? 'This date cannot be changed right now'
+          : selected
+            ? 'Removes this period date'
+            : 'Adds this period date'
+      }
       accessibilityLabel={label}
       accessibilityRole="button"
       accessibilityState={{ disabled, selected }}

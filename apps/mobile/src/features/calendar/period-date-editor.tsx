@@ -391,7 +391,7 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
 
       <Modal
         animationType={props.appearance.reduceMotion ? 'none' : 'fade'}
-        onRequestClose={cancel}
+        onRequestClose={() => setPendingRemovalChange(null)}
         transparent
         visible={pendingRemovalChange !== null}>
         <View

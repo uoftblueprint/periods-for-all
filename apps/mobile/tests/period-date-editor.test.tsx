@@ -6,7 +6,11 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react-native';
-import { BackHandler, type HardwareBackPressEvent } from 'react-native';
+import {
+  BackHandler,
+  Modal,
+  type HardwareBackPressEvent,
+} from 'react-native';
 
 import {
   PeriodDateEditor,
@@ -120,6 +124,19 @@ test('removing a saved date requires confirmation and explains symptoms stay', (
   expect(props.onSave).not.toHaveBeenCalled();
 });
 
+test('closing removal confirmation returns to the draft without cancelling', () => {
+  const props = setup();
+  fireEvent.press(day(2));
+  fireEvent.press(screen.getByText('Save Dates'));
+
+  act(() => screen.UNSAFE_getByType(Modal).props.onRequestClose());
+
+  expect(screen.queryByText('Remove saved period dates?')).toBeNull();
+  expect(day(2).props.accessibilityState.selected).toBe(false);
+  expect(props.onCancel).not.toHaveBeenCalled();
+  expect(props.onSave).not.toHaveBeenCalled();
+});
+
 test('hardware Back discards through onCancel without saving', () => {
   let hardwareBack: ((event: HardwareBackPressEvent) => (
     boolean | null | undefined
@@ -158,6 +175,72 @@ test('a failed save retains the draft and shows the required message', async () 
     .toBeTruthy();
   expect(day(2).props.accessibilityState.selected).toBe(false);
   expect(props.onDone).not.toHaveBeenCalled();
+});
+
+test('a failed save can retry the same draft successfully', async () => {
+  let attempts = 0;
+  const props = setup({
+    initialDates: [],
+    onSave: jest.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('demo failure');
+    }),
+  });
+  fireEvent.press(day(4));
+
+  fireEvent.press(screen.getByText('Save Dates'));
+  expect(await screen.findByText('Could not save dates. Try again.'))
+    .toBeTruthy();
+  fireEvent.press(screen.getByText('Save Dates'));
+
+  await waitFor(() => expect(props.onDone).toHaveBeenCalledTimes(1));
+  expect(jest.mocked(props.onSave).mock.calls).toEqual([
+    [{ add: ['2026-11-04'], remove: [] }],
+    [{ add: ['2026-11-04'], remove: [] }],
+  ]);
+});
+
+test('saving disables editing, navigation, cancel, and hardware Back', async () => {
+  let hardwareBack: ((event: HardwareBackPressEvent) => (
+    boolean | null | undefined
+  )) | undefined;
+  const subscription = { remove: jest.fn() };
+  const listener = jest.spyOn(BackHandler, 'addEventListener')
+    .mockImplementation((_event, handler) => {
+      hardwareBack = handler;
+      return subscription;
+    });
+  const pendingSave = deferred<void>();
+  const props = setup({
+    initialDates: [],
+    onSave: jest.fn(() => pendingSave.promise),
+  });
+  fireEvent.press(day(4));
+  fireEvent.press(screen.getByText('Save Dates'));
+
+  expect(
+    screen.getByRole('button', { name: 'Saving…' }).props.accessibilityState,
+  )
+    .toEqual({ busy: true, disabled: true });
+  expect(
+    screen.getByRole('button', { name: 'Cancel' }).props.accessibilityState
+      .disabled,
+  )
+    .toBe(true);
+  expect(day(5).props.accessibilityState.disabled).toBe(true);
+  expect(screen.getByLabelText('Previous month').props.accessibilityState.disabled)
+    .toBe(true);
+  expect(hardwareBack?.({
+    type: 'hardwareBackPress',
+    timeStamp: 0,
+  })).toBe(true);
+  expect(props.onCancel).not.toHaveBeenCalled();
+
+  await act(async () => {
+    pendingSave.resolve(undefined);
+    await pendingSave.promise;
+  });
+  listener.mockRestore();
 });
 
 test('repeated Save presses submit once and call onDone once', async () => {
@@ -285,6 +368,28 @@ test('a failed month load keeps the grid disabled and Retry loads it again', asy
     expect(screen.getByLabelText(/December 2, 2026/).props.accessibilityState)
       .toEqual({ disabled: false, selected: true });
   });
+});
+
+test('a loaded month ignores malformed, out-of-range, and future dates', async () => {
+  setup({
+    today: '2026-12-05',
+    loadDates: jest.fn(async () => [
+      'not-a-date',
+      '2026-11-30',
+      '2026-12-02',
+      '2026-12-20',
+      '2027-01-01',
+    ]),
+  });
+
+  fireEvent.press(screen.getByLabelText('Next month'));
+
+  await waitFor(() => {
+    expect(screen.getByLabelText(/December 2, 2026/).props.accessibilityState)
+      .toEqual({ disabled: false, selected: true });
+  });
+  expect(screen.getByLabelText(/December 20, 2026/).props.accessibilityState)
+    .toEqual({ disabled: true, selected: false });
 });
 
 test('Today loads the supplied current month using local calendar dates', async () => {
