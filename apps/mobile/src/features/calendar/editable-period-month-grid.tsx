@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useRef } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -11,11 +12,20 @@ import {
   parseDate,
   parseMonth,
 } from './calendar-dates';
-import { isSelectablePeriodDate } from './period-date-editor-state';
+import {
+  beginDateSelectionGesture,
+  isSelectablePeriodDate,
+  visitDateSelectionGesture,
+} from './period-date-editor-state';
+
+import type { DateSelectionGesture } from './period-date-editor-state';
 
 const PERIOD_COLOR = '#F8453E';
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const PERIOD_DROP = require('@/assets/images/calendar-period-drop.png');
+
+type Point = { x: number; y: number };
+type GridLayout = { width: number; height: number };
 
 export type EditablePeriodMonthGridProps = {
   month: string;
@@ -36,8 +46,74 @@ export function EditablePeriodMonthGrid({
   disabled = false,
 }: EditablePeriodMonthGridProps) {
   const parsedMonth = parseMonth(month);
+  const weeks = parsedMonth ? buildMonthGrid(parsedMonth) : [];
   const selected = new Set(selectedDates);
   const { colors, fontScale } = appearance;
+  const weeksRef = useRef(weeks);
+  const selectedRef = useRef(selected);
+  const todayRef = useRef(today);
+  const disabledRef = useRef(disabled);
+  const onChangeDateRef = useRef(onChangeDate);
+  const layoutRef = useRef<GridLayout>({ width: 0, height: 0 });
+  const touchStartRef = useRef<Point | null>(null);
+  const gestureRef = useRef<DateSelectionGesture | null>(null);
+
+  weeksRef.current = weeks;
+  selectedRef.current = selected;
+  todayRef.current = today;
+  disabledRef.current = disabled;
+  onChangeDateRef.current = onChangeDate;
+
+  const dateAtPoint = ({ x, y }: Point): LocalDate | null => {
+    const currentWeeks = weeksRef.current;
+    const { width, height } = layoutRef.current;
+    if (!currentWeeks.length || width <= 0 || height <= 0) return null;
+    if (x < 0 || x >= width || y < 0 || y >= height) return null;
+
+    const column = Math.floor(x / (width / 7));
+    const row = Math.floor(y / (height / currentWeeks.length));
+    return currentWeeks[row][column];
+  };
+
+  const canChangeDate = (date: LocalDate | null): date is LocalDate => (
+    date !== null
+    && !disabledRef.current
+    && isSelectablePeriodDate(date, todayRef.current)
+  );
+
+  const beginGestureAt = (point: Point): boolean => {
+    const date = dateAtPoint(point);
+    if (!canChangeDate(date)) return false;
+
+    const gesture = beginDateSelectionGesture(
+      date,
+      selectedRef.current.has(date),
+    );
+    gestureRef.current = gesture;
+    onChangeDateRef.current(date, gesture.selecting);
+    return true;
+  };
+
+  const visitGestureAt = (point: Point) => {
+    const date = dateAtPoint(point);
+    if (!canChangeDate(date)) return;
+
+    if (!gestureRef.current) {
+      beginGestureAt(point);
+      return;
+    }
+
+    const visit = visitDateSelectionGesture(gestureRef.current, date);
+    gestureRef.current = visit.gesture;
+    if (visit.shouldApply) {
+      onChangeDateRef.current(date, visit.gesture.selecting);
+    }
+  };
+
+  const clearGesture = () => {
+    touchStartRef.current = null;
+    gestureRef.current = null;
+  };
 
   if (!parsedMonth) {
     return (
@@ -69,31 +145,70 @@ export function EditablePeriodMonthGrid({
         ))}
       </View>
 
-      {buildMonthGrid(parsedMonth).map((week, weekIndex) => (
-        <View key={weekIndex} style={{ flexDirection: 'row' }}>
-          {week.map((date, dayIndex) => date ? (
-            <EditableDayCell
-              key={date}
-              date={date}
-              today={today}
-              selected={selected.has(date)}
-              disabled={disabled || !isSelectablePeriodDate(date, today)}
-              onChangeDate={onChangeDate}
-              appearance={appearance}
-            />
-          ) : (
-            <View
-              key={`blank-${dayIndex}`}
-              style={{
-                borderColor: colors.backgroundElement,
-                borderWidth: 0.5,
-                flex: 1,
-                minHeight: 72,
-              }}
-            />
-          ))}
-        </View>
-      ))}
+      <View
+        onLayout={(event) => {
+          const { width, height } = event.nativeEvent.layout;
+          layoutRef.current = { width, height };
+        }}
+        onMoveShouldSetResponderCapture={(event) => {
+          if (disabledRef.current || !touchStartRef.current) return false;
+          const dx = event.nativeEvent.locationX - touchStartRef.current.x;
+          const dy = event.nativeEvent.locationY - touchStartRef.current.y;
+          return Math.abs(dx) > 4 || Math.abs(dy) > 4;
+        }}
+        onResponderGrant={(event) => {
+          const current = {
+            x: event.nativeEvent.locationX,
+            y: event.nativeEvent.locationY,
+          };
+          if (!touchStartRef.current || !beginGestureAt(touchStartRef.current)) {
+            beginGestureAt(current);
+          } else {
+            visitGestureAt(current);
+          }
+        }}
+        onResponderMove={(event) => {
+          visitGestureAt({
+            x: event.nativeEvent.locationX,
+            y: event.nativeEvent.locationY,
+          });
+        }}
+        onResponderRelease={clearGesture}
+        onResponderTerminate={clearGesture}
+        onResponderTerminationRequest={() => false}
+        onTouchStart={(event) => {
+          touchStartRef.current = {
+            x: event.nativeEvent.locationX,
+            y: event.nativeEvent.locationY,
+          };
+        }}
+        testID="editable-period-grid">
+        {weeks.map((week, weekIndex) => (
+          <View key={weekIndex} style={{ flexDirection: 'row' }}>
+            {week.map((date, dayIndex) => date ? (
+              <EditableDayCell
+                key={date}
+                date={date}
+                today={today}
+                selected={selected.has(date)}
+                disabled={disabled || !isSelectablePeriodDate(date, today)}
+                onChangeDate={onChangeDate}
+                appearance={appearance}
+              />
+            ) : (
+              <View
+                key={`blank-${dayIndex}`}
+                style={{
+                  borderColor: colors.backgroundElement,
+                  borderWidth: 0.5,
+                  flex: 1,
+                  minHeight: 72,
+                }}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }

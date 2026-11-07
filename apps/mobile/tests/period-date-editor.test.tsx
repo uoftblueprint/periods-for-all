@@ -216,3 +216,41 @@ test('next month crosses December into January', async () => {
   expect(await screen.findByText('January 2027')).toBeTruthy();
   expect(props.loadDates).toHaveBeenCalledWith('2027-01-01', '2027-01-31');
 });
+
+test('dragging across a week adds each visited date to the draft once', async () => {
+  const props = setup({
+    initialDates: [],
+    today: '2026-11-30',
+  });
+  const grid = screen.getByTestId('editable-period-grid');
+  fireEvent(grid, 'layout', {
+    nativeEvent: { layout: { height: 360, width: 350 } },
+  });
+  fireEvent(grid, 'touchStart', {
+    nativeEvent: { locationX: 25, locationY: 36 },
+  });
+  fireEvent(grid, 'responderGrant', {
+    nativeEvent: { locationX: 75, locationY: 36 },
+  });
+  for (const locationX of [125, 175, 225, 275, 325, 25]) {
+    fireEvent(grid, 'responderMove', {
+      nativeEvent: { locationX, locationY: 36 },
+    });
+  }
+  fireEvent(grid, 'responderRelease', { nativeEvent: {} });
+
+  fireEvent.press(screen.getByText('Save Dates'));
+
+  await waitFor(() => expect(props.onSave).toHaveBeenCalledWith({
+    add: [
+      '2026-11-01',
+      '2026-11-02',
+      '2026-11-03',
+      '2026-11-04',
+      '2026-11-05',
+      '2026-11-06',
+      '2026-11-07',
+    ],
+    remove: [],
+  }));
+});
