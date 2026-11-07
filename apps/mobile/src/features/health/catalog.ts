@@ -3,7 +3,7 @@ import type {Flow, Mood} from './contracts.ts'
 export type CatalogOption <T extends string> = Readonly <{
     id: T;
     label: string;
-}>
+}>;
 
 export const MOOD_OPTIONS = [
   { id: 'verySad', label: 'Very Sad' },
