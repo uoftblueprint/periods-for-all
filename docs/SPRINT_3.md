@@ -85,6 +85,20 @@ than labels so wording can change without migrating saved data.
 UI code may use the catalog-derived symptom ID types for its controls. The
 shared `DailyLog` contract intentionally keeps symptom values as `string[]`.
 
+## Demo store
+
+`createDemoHealthStore()` from `features/health/demo-health-store.ts` returns a
+fresh `HealthStore` backed only by in-memory, made-up data. Its default data
+includes `DEMO_EMPTY_DATE` and `DEMO_FILLED_DATE` so screens can show both
+states without Supabase or a finished route. Creating another store resets the
+samples; instances never share mutations.
+
+The factory accepts seed overrides for empty or custom scenarios. Pass
+`readError` or `writeError` to make all corresponding operations reject with a
+known error in a preview or test. Pass `today` when deterministic future-date
+validation is needed. These controls belong only to the demo factory and do
+not change the shared `HealthStore` interface.
+
 ## File ownership
 
 | Area | Owner | Agreement |
