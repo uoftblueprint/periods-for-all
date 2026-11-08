@@ -444,15 +444,20 @@ test('dragging across a week adds each visited date to the draft once', async ()
   fireEvent(grid, 'layout', {
     nativeEvent: { layout: { height: 360, width: 350 } },
   });
-  fireEvent(grid, 'touchStart', {
-    nativeEvent: { locationX: 25, locationY: 36 },
+  fireEvent(day(1), 'pressIn', {
+    nativeEvent: {
+      locationX: 25,
+      locationY: 36,
+      pageX: 125,
+      pageY: 236,
+    },
   });
   fireEvent(grid, 'responderGrant', {
-    nativeEvent: { locationX: 75, locationY: 36 },
+    nativeEvent: { pageX: 175, pageY: 236 },
   });
-  for (const locationX of [125, 175, 225, 275, 325, 25]) {
+  for (const pageX of [225, 275, 325, 375, 425]) {
     fireEvent(grid, 'responderMove', {
-      nativeEvent: { locationX, locationY: 36 },
+      nativeEvent: { pageX, pageY: 236 },
     });
   }
   fireEvent(grid, 'responderRelease', { nativeEvent: {} });

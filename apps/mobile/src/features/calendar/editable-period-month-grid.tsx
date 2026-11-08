@@ -1,6 +1,11 @@
 import { Image } from 'expo-image';
 import { useRef } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import {
+  type GestureResponderEvent,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
@@ -26,6 +31,11 @@ const PERIOD_DROP = require('@/assets/images/calendar-period-drop.png');
 
 type Point = { x: number; y: number };
 type GridLayout = { width: number; height: number };
+type TouchStart = {
+  date: LocalDate;
+  gridPoint: Point;
+  pagePoint: Point;
+};
 
 export type EditablePeriodMonthGridProps = {
   month: string;
@@ -55,7 +65,7 @@ export function EditablePeriodMonthGrid({
   const disabledRef = useRef(disabled);
   const onChangeDateRef = useRef(onChangeDate);
   const layoutRef = useRef<GridLayout>({ width: 0, height: 0 });
-  const touchStartRef = useRef<Point | null>(null);
+  const touchStartRef = useRef<TouchStart | null>(null);
   const gestureRef = useRef<DateSelectionGesture | null>(null);
 
   weeksRef.current = weeks;
@@ -110,6 +120,40 @@ export function EditablePeriodMonthGrid({
     }
   };
 
+  const rememberTouchStart = (
+    date: LocalDate,
+    event: GestureResponderEvent,
+  ) => {
+    const currentWeeks = weeksRef.current;
+    const { width, height } = layoutRef.current;
+    const row = currentWeeks.findIndex((week) => week.includes(date));
+    const column = row < 0 ? -1 : currentWeeks[row].indexOf(date);
+    if (row < 0 || column < 0 || width <= 0 || height <= 0) return;
+
+    const cellWidth = width / 7;
+    const cellHeight = height / currentWeeks.length;
+    touchStartRef.current = {
+      date,
+      gridPoint: {
+        x: column * cellWidth + event.nativeEvent.locationX,
+        y: row * cellHeight + event.nativeEvent.locationY,
+      },
+      pagePoint: {
+        x: event.nativeEvent.pageX,
+        y: event.nativeEvent.pageY,
+      },
+    };
+  };
+
+  const gridPointFromEvent = (event: GestureResponderEvent): Point | null => {
+    const start = touchStartRef.current;
+    if (!start) return null;
+    return {
+      x: start.gridPoint.x + event.nativeEvent.pageX - start.pagePoint.x,
+      y: start.gridPoint.y + event.nativeEvent.pageY - start.pagePoint.y,
+    };
+  };
+
   const clearGesture = () => {
     touchStartRef.current = null;
     gestureRef.current = null;
@@ -151,37 +195,27 @@ export function EditablePeriodMonthGrid({
           layoutRef.current = { width, height };
         }}
         onMoveShouldSetResponderCapture={(event) => {
-          if (disabledRef.current || !touchStartRef.current) return false;
-          const dx = event.nativeEvent.locationX - touchStartRef.current.x;
-          const dy = event.nativeEvent.locationY - touchStartRef.current.y;
+          const start = touchStartRef.current;
+          if (disabledRef.current || !start) return false;
+          const dx = event.nativeEvent.pageX - start.pagePoint.x;
+          const dy = event.nativeEvent.pageY - start.pagePoint.y;
           return Math.abs(dx) > 4 || Math.abs(dy) > 4;
         }}
         onResponderGrant={(event) => {
-          const current = {
-            x: event.nativeEvent.locationX,
-            y: event.nativeEvent.locationY,
-          };
-          if (!touchStartRef.current || !beginGestureAt(touchStartRef.current)) {
-            beginGestureAt(current);
-          } else {
-            visitGestureAt(current);
-          }
+          const start = touchStartRef.current;
+          const current = gridPointFromEvent(event);
+          if (!start || !current) return;
+          beginGestureAt(start.gridPoint);
+          visitGestureAt(current);
         }}
         onResponderMove={(event) => {
-          visitGestureAt({
-            x: event.nativeEvent.locationX,
-            y: event.nativeEvent.locationY,
-          });
+          const current = gridPointFromEvent(event);
+          if (current) visitGestureAt(current);
         }}
         onResponderRelease={clearGesture}
         onResponderTerminate={clearGesture}
         onResponderTerminationRequest={() => false}
-        onTouchStart={(event) => {
-          touchStartRef.current = {
-            x: event.nativeEvent.locationX,
-            y: event.nativeEvent.locationY,
-          };
-        }}
+        onTouchEnd={clearGesture}
         testID="editable-period-grid">
         {weeks.map((week, weekIndex) => (
           <View key={weekIndex} style={{ flexDirection: 'row' }}>
@@ -193,6 +227,7 @@ export function EditablePeriodMonthGrid({
                 selected={selected.has(date)}
                 disabled={disabled || !isSelectablePeriodDate(date, today)}
                 onChangeDate={onChangeDate}
+                onPressIn={(event) => rememberTouchStart(date, event)}
                 appearance={appearance}
               />
             ) : (
@@ -219,6 +254,7 @@ type EditableDayCellProps = {
   selected: boolean;
   disabled: boolean;
   onChangeDate: (date: LocalDate, selected: boolean) => void;
+  onPressIn: (event: GestureResponderEvent) => void;
   appearance: Appearance;
 };
 
@@ -228,6 +264,7 @@ function EditableDayCell({
   selected,
   disabled,
   onChangeDate,
+  onPressIn,
   appearance,
 }: EditableDayCellProps) {
   const parsed = parseDate(date)!;
@@ -252,6 +289,7 @@ function EditableDayCell({
       accessibilityState={{ disabled, selected }}
       disabled={disabled}
       onPress={() => onChangeDate(date, !selected)}
+      onPressIn={onPressIn}
       style={({ pressed }) => ({
         alignItems: 'center',
         backgroundColor: colors.background,
