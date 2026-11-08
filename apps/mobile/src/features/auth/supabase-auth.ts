@@ -7,7 +7,14 @@
 import type { AuthService } from '@/foundation/contracts';
 import { supabase } from '@/lib/supabase';
 import { createAuthFromClient } from './supabase-auth-adapter';
+import type { SignUp } from './signup-contracts';
+import { createSignUpFromClient } from './signup-service';
 
 export function createSupabaseAuth(): AuthService {
   return createAuthFromClient(supabase.auth);
+}
+
+// S2R-10: real signup, using the same single client.
+export function createSupabaseSignUp(): SignUp {
+  return createSignUpFromClient(supabase.auth);
 }

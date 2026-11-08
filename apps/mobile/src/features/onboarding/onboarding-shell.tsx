@@ -46,7 +46,7 @@ export function OnboardingShell({ model, navigator, appearance, bypass = false, 
       importantForAccessibility={blocked ? 'no-hide-descendants' : 'auto'}
     >{navigator}</View>
     {waitingOnHome && <Text accessibilityLiveRegion="polite" style={{ color: appearance.colors.text }}>Please wait…</Text>}
-    {blocked && !waitingOnHome && <SafeAreaView style={{ flex: 1, backgroundColor: gateAppearance.colors.background }}>
+    {blocked && !waitingOnHome && <SafeAreaView edges={model.view === 'setup' ? [] : undefined} style={{ flex: 1, backgroundColor: gateAppearance.colors.background }}>
       {model.view === 'setup' && model.setup ? <DisplaySetup {...model.setup} /> : <PreviewScreen
         title={model.view === 'error' ? 'We couldn’t check if you’re signed in' : 'Checking if you’re signed in'}
         appearance={appearance}

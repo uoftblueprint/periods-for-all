@@ -101,7 +101,7 @@ test('heading layout focuses once per setup appearance and preserves focus while
   const heading = await screen.findByText('Display setup');
   fireEvent(heading, 'layout', { nativeEvent: { layout: { width: 300, height: 32 } } });
   expect(focus).toHaveBeenCalledTimes(1);
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   fireEvent.press(screen.getByRole('radio', { name: /Largest/ }));
   fireEvent(heading, 'layout', { nativeEvent: { layout: { width: 300, height: 48 } } });
   expect(focus).toHaveBeenCalledTimes(1);
@@ -112,7 +112,7 @@ test('heading layout focuses once per setup appearance and preserves focus while
   const reopened = await screen.findByText('Display setup');
   fireEvent(reopened, 'layout', { nativeEvent: { layout: { width: 300, height: 48 } } });
   expect(focus).toHaveBeenCalledTimes(2);
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   expect(screen.getByRole('radio', { name: /Largest/ })).toBeChecked();
 });
 
@@ -134,11 +134,11 @@ test('Back permits Home only for the session, without writing completion', async
 });
 
 function chooseDisplaySettings() {
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   fireEvent.press(screen.getByRole('radio', { name: /Largest/ }));
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   fireEvent(screen.getByRole('switch'), 'valueChange', true);
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   fireEvent.press(screen.getByRole('radio', { name: /Dark Mode/ }));
 }
 
@@ -155,12 +155,12 @@ test.each(['preferences', 'completion'])('%s failure retains choices through tex
     const scroll = screen.UNSAFE_getByType(ScrollView);
     act(() => Dimensions.set({ window: { ...originalWindow, width: originalWindow.width + 100 } }));
     expect(screen.UNSAFE_getByType(ScrollView)).toBe(scroll);
-    fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
     act(() => Dimensions.set({ window: { ...originalWindow, fontScale: originalWindow.fontScale * 2 } }));
     expect(screen.UNSAFE_getByType(ScrollView)).not.toBe(scroll);
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Skip' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Skip/ })).toBeDisabled();
     expect(screen.getByRole('radio', { name: /Default/ })).toBeDisabled();
     expect(screen.getByRole('radio', { name: /Dark Mode/ })).toBeChecked();
     fireEvent.press(screen.getByRole('radio', { name: /Default/ }));
@@ -181,7 +181,7 @@ test.each(['preferences', 'completion'])('%s failure retains choices through tex
     expect(screen.getByRole('radio', { name: /Dark Mode/ })).toBeChecked();
     expect(f.model().setup!.settings).toEqual({ textSize: 'largest', colorScheme: 'dark', reduceMotion: true });
     expect(f.store.markComplete).toHaveBeenCalledTimes(stage === 'preferences' ? 0 : 1);
-    fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
     await screen.findByRole('button', { name: 'Private action' });
     expect(f.save).toHaveBeenCalledTimes(2);
     expect(f.store.markComplete).toHaveBeenLastCalledWith('a');
@@ -198,7 +198,7 @@ test('same-account re-login ignores late writes and clears the old draft without
   f.save.mockReturnValueOnce(saving.promise);
   const result = render(<f.App />);
   await screen.findByText('Display setup');
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   fireEvent.press(screen.getByRole('radio', { name: /Largest/ }));
   let first!: Promise<unknown>;
   act(() => { first = f.model().setup!.onFinish().catch((error: unknown) => error); });
@@ -209,7 +209,7 @@ test('same-account re-login ignores late writes and clears the old draft without
   expect(await first).toBeInstanceOf(Error);
   expect(f.store.markComplete).not.toHaveBeenCalled();
   expect(screen.queryByRole('button', { name: 'Private action' })).toBeNull();
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   expect(screen.getByRole('radio', { name: /Standard/ })).toBeChecked();
   expect(f.mounts()).toBe(1);
 });

@@ -8,6 +8,8 @@ import { ThemeStep } from '@/features/onboarding/theme-step';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings, type Settings } from '@/foundation/contracts';
 
+jest.mock('@expo-google-fonts/atkinson-hyperlegible', () => ({ useFonts: () => [true, null] }));
+
 // Resolve the lazy native mock before Jest starts timing individual tests.
 void ScrollView;
 
@@ -18,24 +20,24 @@ function Setup({ finish }: { finish: () => Promise<void> }) {
   return <DisplaySetup settings={settings} onChange={setSettings} onFinish={finish} onExit={() => {}} />;
 }
 
-test('every setup step and its actions share one scroll region, including save errors', async () => {
+test('step content and finish actions share one scroll region, with Back available in the header', async () => {
   const finish = jest.fn<() => Promise<void>>().mockRejectedValue(new Error('Save failed'));
   render(<Setup finish={finish} />);
-  const steps = ["Let's set up your display settings now!", 'Font Sizes', 'Motion Controls', 'Colour Themes'];
+  const steps = ["Let’s set up your display settings now!", 'Font Sizes', 'Motion Controls', 'Colour Themes'];
   for (const title of steps) {
     const regions = screen.UNSAFE_getAllByType(ScrollView);
     expect(regions).toHaveLength(1);
     const page = within(regions[0]);
     expect(page.getByText('Display setup')).toBeVisible();
-    expect(page.getByText(title)).toBeVisible();
-    expect(page.getByRole('button', { name: 'Back' })).toBeEnabled();
-    expect(page.getByRole('button', { name: 'Skip' })).toBeEnabled();
-    await act(async () => fireEvent.press(page.getByRole('button', { name: 'Continue' })));
+    expect(screen.getByText(title)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled();
+    expect(page.getByRole('button', { name: /^Skip/ })).toBeEnabled();
+    await act(async () => fireEvent.press(page.getByRole('button', { name: /^Continue/ })));
   }
   const page = within(screen.UNSAFE_getByType(ScrollView));
   expect(page.getByText("We couldn't save your display settings. Please try again.")).toBeVisible();
   expect(page.getByRole('radio', { name: /Default/ })).toBeChecked();
-  expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  expect(page.getByRole('button', { name: /^Continue/ })).toBeEnabled();
   expect(finish).toHaveBeenCalledTimes(1);
 });
 
@@ -43,12 +45,12 @@ test('changing steps returns to the top, while changing a choice keeps the scrol
   const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo').mockImplementation(() => {});
   render(<Setup finish={async () => {}} />);
   scrollTo.mockClear();
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: false });
   scrollTo.mockClear();
   fireEvent.press(screen.getByRole('radio', { name: /Large$/ }));
   expect(scrollTo).not.toHaveBeenCalled();
-  fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
   expect(scrollTo).toHaveBeenCalledTimes(1);
   scrollTo.mockClear();
   fireEvent.press(screen.getByRole('button', { name: 'Back' }));

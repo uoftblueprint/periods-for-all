@@ -60,6 +60,7 @@ function AuthRoutes({ session }: { session: ReturnType<typeof createSessionAuth>
     contentStyle: { backgroundColor: appearance.colors.background },
   }}>
     <Stack.Screen name="login" />
+    <Stack.Screen name="display-setup-preview" options={{ headerShown: false }} />
     <Stack.Protected guard={auth.status === 'signedIn' && matchesUser}>
       <Stack.Screen name="home" />
     </Stack.Protected>

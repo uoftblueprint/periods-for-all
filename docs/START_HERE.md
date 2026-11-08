@@ -126,3 +126,24 @@ revised for these placeholders and interfaces; confirm the starter is merged and
 checkout includes it before claiming dependent work. The two-week commitment still
 needs a capacity/dependency check. Eight people can start different pieces, but they
 cannot independently certify the complete product before integration.
+
+
+### Final setup flow reconciliation (#62)
+
+S2R-07 integrates #62 as merged in `3882c4f`: its introduction artwork, typography,
+header, theme cards, progress indicator and action wording are retained. The final
+“Continue to Period Information” action still finishes display setup and opens the
+existing Home destination; period-information routing is outside #53.
+
+Integration retains synchronous pending guards, disabled native controls, keyboard
+radio navigation, focus on setup entry, scroll reset between steps and iOS Dynamic
+Type measurement refresh. DisplaySetup owns its safe-area insets; the gate avoids
+applying a second set. Main's real signup route and Create account link are retained.
+
+After reconciliation, typecheck and 299 tests passed. Real local Supabase checks on
+web covered login → setup → save → Home, reload/session restoration, saved text/theme
+choices in Settings, logout and same-account re-login. A separate injected preview
+failure retained largest-text/dark/motion selections, disabled controls while saving,
+and allowed retry. These injected checks do not prove real storage failure handling.
+Native maximum-text, full native relaunch and spoken VoiceOver checks have not been
+repeated against this final UI and remain for final review.
