@@ -93,6 +93,7 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
     Record<string, MonthLoadStatus>
   >(() => validInitialMonth ? { [props.initialMonth]: 'loaded' } : {});
   const [saving, setSaving] = useState(false);
+  const [draggingDates, setDraggingDates] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingRemovalChange, setPendingRemovalChange] = useState<
     PeriodDateChange | null
@@ -296,8 +297,10 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
       </View>
 
       <ScrollView
+        scrollEnabled={!draggingDates}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: Spacing.three }}>
+        contentContainerStyle={{ paddingTop: Spacing.three }}
+        testID="period-date-editor-scroll">
         <Text
           accessibilityRole="header"
           style={{
@@ -357,6 +360,7 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
           disabled={!monthLoaded || saving}
           month={currentMonth}
           onChangeDate={changeDate}
+          onDraggingChange={setDraggingDates}
           selectedDates={selectedDates}
           today={props.today}
         />

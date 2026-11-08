@@ -42,6 +42,7 @@ export type EditablePeriodMonthGridProps = {
   today: LocalDate;
   selectedDates: readonly LocalDate[];
   onChangeDate: (date: LocalDate, selected: boolean) => void;
+  onDraggingChange?: (dragging: boolean) => void;
   appearance: Appearance;
   disabled?: boolean;
 };
@@ -52,6 +53,7 @@ export function EditablePeriodMonthGrid({
   today,
   selectedDates,
   onChangeDate,
+  onDraggingChange,
   appearance,
   disabled = false,
 }: EditablePeriodMonthGridProps) {
@@ -64,6 +66,7 @@ export function EditablePeriodMonthGrid({
   const todayRef = useRef(today);
   const disabledRef = useRef(disabled);
   const onChangeDateRef = useRef(onChangeDate);
+  const onDraggingChangeRef = useRef(onDraggingChange);
   const layoutRef = useRef<GridLayout>({ width: 0, height: 0 });
   const touchStartRef = useRef<TouchStart | null>(null);
   const gestureRef = useRef<DateSelectionGesture | null>(null);
@@ -73,6 +76,7 @@ export function EditablePeriodMonthGrid({
   todayRef.current = today;
   disabledRef.current = disabled;
   onChangeDateRef.current = onChangeDate;
+  onDraggingChangeRef.current = onDraggingChange;
 
   const dateAtPoint = ({ x, y }: Point): LocalDate | null => {
     const currentWeeks = weeksRef.current;
@@ -155,8 +159,10 @@ export function EditablePeriodMonthGrid({
   };
 
   const clearGesture = () => {
+    const wasDragging = gestureRef.current !== null;
     touchStartRef.current = null;
     gestureRef.current = null;
+    if (wasDragging) onDraggingChangeRef.current?.(false);
   };
 
   if (!parsedMonth) {
@@ -205,8 +211,10 @@ export function EditablePeriodMonthGrid({
           const start = touchStartRef.current;
           const current = gridPointFromEvent(event);
           if (!start || !current) return;
-          beginGestureAt(start.gridPoint);
-          visitGestureAt(current);
+          if (beginGestureAt(start.gridPoint)) {
+            onDraggingChangeRef.current?.(true);
+            visitGestureAt(current);
+          }
         }}
         onResponderMove={(event) => {
           const current = gridPointFromEvent(event);

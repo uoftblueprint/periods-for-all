@@ -452,15 +452,21 @@ test('dragging across a week adds each visited date to the draft once', async ()
       pageY: 236,
     },
   });
+  expect(screen.getByTestId('period-date-editor-scroll').props.scrollEnabled)
+    .toBe(true);
   fireEvent(grid, 'responderGrant', {
     nativeEvent: { pageX: 175, pageY: 236 },
   });
+  expect(screen.getByTestId('period-date-editor-scroll').props.scrollEnabled)
+    .toBe(false);
   for (const pageX of [225, 275, 325, 375, 425]) {
     fireEvent(grid, 'responderMove', {
       nativeEvent: { pageX, pageY: 236 },
     });
   }
   fireEvent(grid, 'responderRelease', { nativeEvent: {} });
+  expect(screen.getByTestId('period-date-editor-scroll').props.scrollEnabled)
+    .toBe(true);
 
   fireEvent.press(screen.getByText('Save Dates'));
 
