@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FontScale, Spacing } from '@/constants/theme';
 import type { Settings } from '@/foundation/contracts';
 import type { Appearance } from '@/features/settings/appearance';
@@ -20,26 +20,15 @@ export type FontSizeStepProps = {
 
 /** Onboarding step: pick a text size from four labelled choices with a live sample. */
 export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps) {
-  const { colors } = appearance;
+  const { colors, fontScale } = appearance;
   const previewScale = FontScale[value];
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      <Text
-        accessibilityRole="header"
-        style={[styles.heading, { color: colors.text }]}
-      >
-        Font Sizes
-      </Text>
-
-      <Text style={[styles.explanation, { color: colors.textSecondary }]}>
+    <View style={styles.content}>
+      <Text style={[styles.explanation, { color: colors.textSecondary, fontSize: 16 * fontScale, lineHeight: 24 * fontScale }]}>
         This will change how large the font is on screen.
       </Text>
 
-      {/* Four labelled choices */}
       <View style={styles.choices}>
         {choices.map(({ key, label }) => {
           const selected = key === value;
@@ -66,36 +55,26 @@ export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps)
         })}
       </View>
 
-      {/* Live sample text that scales with the selected size */}
+      {/* Sample text that scales with the selected size */}
       <View style={[styles.sample, { backgroundColor: colors.backgroundElement }]}>
         <Text style={{ color: colors.text, fontSize: 16 * previewScale, lineHeight: 24 * previewScale }}>
           The text size will adjust based on the choice above. This sample shows how your text will look.
         </Text>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: {
     paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.five,
-    paddingBottom: Spacing.five,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: Spacing.two,
+    gap: Spacing.three,
   },
   explanation: {
     fontSize: 16,
-    marginBottom: Spacing.three,
   },
   choices: {
     gap: Spacing.two,
-    marginBottom: Spacing.four,
   },
   choice: {
     paddingVertical: Spacing.three,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings, type Settings } from '@/foundation/contracts';
@@ -36,12 +36,14 @@ export default function PreviewS2R02() {
         ))}
       </View>
 
-      {/* Active step */}
-      {tab === 'font' ? (
-        <FontSizeStep value={textSize} onChange={setTextSize} appearance={appearance} />
-      ) : (
-        <MotionStep value={reduceMotion} onChange={setReduceMotion} appearance={appearance} />
-      )}
+      {/* Active step wrapped in ScrollView since components no longer scroll themselves */}
+      <ScrollView contentContainerStyle={styles.stepContent}>
+        {tab === 'font' ? (
+          <FontSizeStep value={textSize} onChange={setTextSize} appearance={appearance} />
+        ) : (
+          <MotionStep value={reduceMotion} onChange={setReduceMotion} appearance={appearance} />
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -64,4 +66,5 @@ const styles = StyleSheet.create({
   },
   tabText: { color: Colors.light.textSecondary },
   tabTextActive: { color: Colors.light.text, fontWeight: '600' },
+  stepContent: { paddingTop: Spacing.five, paddingBottom: Spacing.five },
 });
