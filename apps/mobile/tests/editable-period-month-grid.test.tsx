@@ -80,6 +80,48 @@ test('the whole grid can be disabled while its month is unavailable', () => {
   expect(props.onChangeDate).not.toHaveBeenCalled();
 });
 
+test('a first-column touch reports edge protection until it ends', () => {
+  const onEdgeTouchActiveChange = jest.fn();
+  setup({ onEdgeTouchActiveChange });
+  const grid = screen.getByTestId('editable-period-grid');
+  fireEvent(grid, 'layout', {
+    nativeEvent: { layout: { height: 360, width: 350 } },
+  });
+
+  fireEvent(day(1), 'pressIn', {
+    nativeEvent: {
+      locationX: 25,
+      locationY: 36,
+      pageX: 125,
+      pageY: 236,
+    },
+  });
+  expect(onEdgeTouchActiveChange).toHaveBeenLastCalledWith(true);
+
+  fireEvent(grid, 'touchEnd', { nativeEvent: {} });
+  expect(onEdgeTouchActiveChange).toHaveBeenLastCalledWith(false);
+});
+
+test('touches outside the first column leave edge navigation enabled', () => {
+  const onEdgeTouchActiveChange = jest.fn();
+  setup({ onEdgeTouchActiveChange });
+  const grid = screen.getByTestId('editable-period-grid');
+  fireEvent(grid, 'layout', {
+    nativeEvent: { layout: { height: 360, width: 350 } },
+  });
+
+  fireEvent(day(2), 'pressIn', {
+    nativeEvent: {
+      locationX: 25,
+      locationY: 36,
+      pageX: 175,
+      pageY: 236,
+    },
+  });
+
+  expect(onEdgeTouchActiveChange).not.toHaveBeenCalled();
+});
+
 test('dragging across dates applies the first date action once per day', () => {
   const props = setup({
     selectedDates: [],

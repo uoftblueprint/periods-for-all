@@ -6,9 +6,17 @@ import { Colors } from '@/constants/theme';
 import type { PeriodDateEditorProps } from '@/features/calendar/period-date-editor';
 
 let mockEditorProps: PeriodDateEditorProps;
+let mockScreenOptions: { gestureEnabled?: boolean; title?: string } | undefined;
 
 jest.mock('expo-router', () => ({
-  Stack: { Screen: () => null },
+  Stack: {
+    Screen: ({ options }: {
+      options: { gestureEnabled?: boolean; title?: string };
+    }) => {
+      mockScreenOptions = options;
+      return null;
+    },
+  },
 }));
 
 jest.mock('@/features/calendar/period-date-editor', () => ({
@@ -30,6 +38,12 @@ test('provides sample dates and appearance controls to the editor', () => {
     '2026-10-08',
     '2026-10-09',
   ]);
+  expect(mockScreenOptions?.gestureEnabled).toBe(true);
+
+  act(() => mockEditorProps.onEdgeTouchActiveChange?.(true));
+  expect(mockScreenOptions?.gestureEnabled).toBe(false);
+  act(() => mockEditorProps.onEdgeTouchActiveChange?.(false));
+  expect(mockScreenOptions?.gestureEnabled).toBe(true);
 
   fireEvent(screen.getByLabelText('Dark'), 'valueChange', true);
   fireEvent(screen.getByLabelText('Large text'), 'valueChange', true);
