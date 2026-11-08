@@ -89,20 +89,25 @@ test('dragging across dates applies the first date action once per day', () => {
   fireEvent(grid, 'layout', {
     nativeEvent: { layout: { height: 360, width: 350 } },
   });
-  fireEvent(grid, 'touchStart', {
-    nativeEvent: { locationX: 25, locationY: 36 },
+  fireEvent(day(1), 'pressIn', {
+    nativeEvent: {
+      locationX: 25,
+      locationY: 36,
+      pageX: 125,
+      pageY: 236,
+    },
   });
   fireEvent(grid, 'responderGrant', {
-    nativeEvent: { locationX: 75, locationY: 36 },
+    nativeEvent: { pageX: 175, pageY: 236 },
   });
   fireEvent(grid, 'responderMove', {
-    nativeEvent: { locationX: 125, locationY: 36 },
+    nativeEvent: { pageX: 225, pageY: 176 },
   });
   fireEvent(grid, 'responderMove', {
-    nativeEvent: { locationX: 175, locationY: 36 },
+    nativeEvent: { pageX: 275, pageY: 296 },
   });
   fireEvent(grid, 'responderMove', {
-    nativeEvent: { locationX: 75, locationY: 36 },
+    nativeEvent: { pageX: 175, pageY: 166 },
   });
   fireEvent(grid, 'responderRelease', { nativeEvent: {} });
 
@@ -128,14 +133,19 @@ test('a drag beginning on a selected date consistently removes dates', () => {
   fireEvent(grid, 'layout', {
     nativeEvent: { layout: { height: 360, width: 350 } },
   });
-  fireEvent(grid, 'touchStart', {
-    nativeEvent: { locationX: 25, locationY: 36 },
+  fireEvent(day(1), 'pressIn', {
+    nativeEvent: {
+      locationX: 25,
+      locationY: 36,
+      pageX: 125,
+      pageY: 236,
+    },
   });
   fireEvent(grid, 'responderGrant', {
-    nativeEvent: { locationX: 75, locationY: 36 },
+    nativeEvent: { pageX: 175, pageY: 306 },
   });
   fireEvent(grid, 'responderMove', {
-    nativeEvent: { locationX: 125, locationY: 36 },
+    nativeEvent: { pageX: 225, pageY: 176 },
   });
 
   expect(jest.mocked(props.onChangeDate).mock.calls).toEqual([
@@ -154,14 +164,19 @@ test('dragging ignores future dates', () => {
   fireEvent(grid, 'layout', {
     nativeEvent: { layout: { height: 360, width: 350 } },
   });
-  fireEvent(grid, 'touchStart', {
-    nativeEvent: { locationX: 75, locationY: 36 },
+  fireEvent(day(2), 'pressIn', {
+    nativeEvent: {
+      locationX: 25,
+      locationY: 36,
+      pageX: 175,
+      pageY: 236,
+    },
   });
   fireEvent(grid, 'responderGrant', {
-    nativeEvent: { locationX: 125, locationY: 36 },
+    nativeEvent: { pageX: 225, pageY: 296 },
   });
   fireEvent(grid, 'responderMove', {
-    nativeEvent: { locationX: 175, locationY: 36 },
+    nativeEvent: { pageX: 275, pageY: 176 },
   });
 
   expect(jest.mocked(props.onChangeDate).mock.calls).toEqual([
