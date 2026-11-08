@@ -4,6 +4,7 @@ import { createDemoAuth } from '@/foundation/demo-auth';
 import { PreviewScreen } from '@/foundation/preview-screen';
 import ButtonPreview from './button-preview';
 import InputPreview from './input-preview';
+import { SymptomsPreview } from './symptoms-preview';
 
 export default function Playground() {
   const [auth] = useState(createDemoAuth);
@@ -22,6 +23,7 @@ export default function Playground() {
       {/* Example: <AppButton label="Continue" onPress={() => setMessage('Pressed')} /> */}
       <ButtonPreview></ButtonPreview>
       <InputPreview></InputPreview>
+      <SymptomsPreview></SymptomsPreview>
     </PreviewScreen>
   );
 }
