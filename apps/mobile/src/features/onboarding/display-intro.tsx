@@ -1,67 +1,52 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Spacing } from '@/constants/theme';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { OnboardingFonts, Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
 
-/** Props for the display introduction screen. */
+const displayWrench = require('../../../assets/onboarding/display-wrench.png');
+
 export type DisplayIntroProps = { appearance: Appearance };
 
-/**
- * Introduction screen shown before display settings setup.
- * Renders a placeholder illustration, heading, and explanation.
- * Content only — navigation buttons are owned by S2R-05.
- */
 export function DisplayIntro({ appearance }: DisplayIntroProps) {
   const { colors, fontScale } = appearance;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      {/* Placeholder illustration — replace with exported artwork when available */}
-      <View
-        style={[styles.illustration, { backgroundColor: colors.backgroundElement }]}
-        accessibilityElementsHidden={true}
+    <View style={styles.content}>
+      <Image
+        accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-      >
-        <Text style={{ fontSize: 48 * fontScale, color: colors.textSecondary }}>🎨</Text>
+        source={displayWrench}
+        contentFit="contain"
+        style={styles.illustration}
+      />
+      <View style={styles.copy}>
+        <Text
+          accessibilityRole="header"
+          style={[
+            styles.heading,
+            { color: colors.text, fontSize: 33 * fontScale, lineHeight: 38 * fontScale },
+          ]}
+        >
+          Let’s set up your display settings now!
+        </Text>
+        <Text
+          style={[
+            styles.explanation,
+            { color: colors.text, fontSize: 16 * fontScale, lineHeight: 20 * fontScale },
+          ]}
+        >
+          These are to control how your app looks.
+        </Text>
       </View>
-
-      <Text style={[styles.heading, { color: colors.text, fontSize: 24 * fontScale }]}>
-        Let's set up your display settings now!
-      </Text>
-
-      <Text style={[styles.explanation, { color: colors.textSecondary, fontSize: 16 * fontScale, lineHeight: 24 * fontScale }]}>
-        These are to control how your app looks.
-      </Text>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.six,
-    paddingBottom: Spacing.five,
-  },
-  illustration: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.five,
-  },
-  heading: {
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: Spacing.three,
-  },
-  explanation: {
-    textAlign: 'center',
-  },
+  content: { width: '100%', alignItems: 'center', gap: Spacing.three },
+  illustration: { width: 160, height: 160 },
+  copy: { width: '100%', alignItems: 'center', gap: Spacing.three },
+  heading: { fontFamily: OnboardingFonts.bold, textAlign: 'center' },
+  explanation: { fontFamily: OnboardingFonts.regular, textAlign: 'center' },
 });
