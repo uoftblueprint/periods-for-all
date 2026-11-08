@@ -81,9 +81,28 @@ test('loaded adjacent-month dates are ghosted and remain editable', () => {
   const ghostDate = screen.getByLabelText(/September 27, 2026/);
 
   expect(ghostDate.props.accessibilityState.disabled).toBe(false);
-  expect(ghostDate.props.style.opacity).toBe(0.68);
+  expect(ghostDate.props.style.opacity).toBe(1);
+  expect(screen.getByTestId('period-date-label-2026-09-27').props.style)
+    .toMatchObject({ color: '#8F7F67' });
+  expect(screen.getByTestId('period-date-marker-2026-09-27').props.style)
+    .toMatchObject({ borderColor: '#8F7F67' });
   fireEvent.press(ghostDate);
   expect(props.onChangeDate).toHaveBeenCalledWith('2026-09-27', true);
+});
+
+test('next-month dates keep the existing ghost styling', () => {
+  setup({
+    editableMonths: ['2026-08', '2026-09', '2026-10'],
+    month: '2026-09',
+    today: '2026-10-14',
+  });
+  const nextMonthDate = screen.getByLabelText(/October 1, 2026/);
+
+  expect(nextMonthDate.props.style.opacity).toBe(0.68);
+  expect(screen.getByTestId('period-date-marker-2026-10-01').props.style)
+    .toMatchObject({
+      borderColor: getAppearance(defaultSettings).colors.textSecondary,
+    });
 });
 
 test('adjacent-month dates stay disabled until their month is loaded', () => {

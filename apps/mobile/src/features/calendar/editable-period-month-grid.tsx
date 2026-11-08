@@ -26,6 +26,7 @@ import {
 import type { DateSelectionGesture } from './period-date-editor-state';
 
 const PERIOD_COLOR = '#F8453E';
+const PAST_MONTH_COLOR = '#8F7F67';
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const PERIOD_DROP = require('@/assets/images/calendar-period-drop.png');
 
@@ -252,7 +253,10 @@ export function EditablePeriodMonthGrid({
             style={{ flexDirection: 'row', height: rowHeight }}
             testID={`editable-period-week-${weekIndex}`}>
             {week.map((date) => {
-              const outsideMonth = !date.startsWith(`${month}-`);
+              const dateMonth = date.slice(0, 7);
+              const adjacentMonth = dateMonth < month
+                ? 'previous'
+                : dateMonth > month ? 'next' : null;
               return (
               <EditableDayCell
                 key={date}
@@ -260,9 +264,9 @@ export function EditablePeriodMonthGrid({
                 today={today}
                 selected={selected.has(date)}
                 disabled={disabled
-                  || !editableMonths.includes(date.slice(0, 7))
+                  || !editableMonths.includes(dateMonth)
                   || !isSelectablePeriodDate(date, today)}
-                outsideMonth={outsideMonth}
+                adjacentMonth={adjacentMonth}
                 onChangeDate={onChangeDate}
                 onPressIn={(event) => rememberTouchStart(date, event)}
                 appearance={appearance}
@@ -281,7 +285,7 @@ type EditableDayCellProps = {
   today: LocalDate;
   selected: boolean;
   disabled: boolean;
-  outsideMonth: boolean;
+  adjacentMonth: 'previous' | 'next' | null;
   onChangeDate: (date: LocalDate, selected: boolean) => void;
   onPressIn: (event: GestureResponderEvent) => void;
   appearance: Appearance;
@@ -292,7 +296,7 @@ function EditableDayCell({
   today,
   selected,
   disabled,
-  outsideMonth,
+  adjacentMonth,
   onChangeDate,
   onPressIn,
   appearance,
@@ -329,13 +333,17 @@ function EditableDayCell({
         gap: Spacing.one,
         height: '100%',
         justifyContent: 'center',
-        opacity: disabled ? 0.45 : outsideMonth ? 0.68 : pressed ? 0.7 : 1,
+        opacity: disabled
+          ? 0.45
+          : pressed ? 0.7 : adjacentMonth === 'next' ? 0.68 : 1,
         padding: Spacing.two,
       })}>
       <Text
+        testID={`period-date-label-${date}`}
         style={{
-          color: outsideMonth
-            ? colors.textSecondary
+          color: adjacentMonth === 'previous'
+            ? PAST_MONTH_COLOR
+            : adjacentMonth === 'next' ? colors.textSecondary
             : selected ? PERIOD_COLOR : colors.text,
           fontSize: 16 * fontScale,
           fontWeight: selected || date === today ? '700' : '400',
@@ -355,7 +363,9 @@ function EditableDayCell({
           padding: Spacing.one,
           width: 24,
         } : {
-          borderColor: colors.textSecondary,
+          borderColor: adjacentMonth === 'previous'
+            ? PAST_MONTH_COLOR
+            : colors.textSecondary,
           borderRadius: 12,
           borderStyle: 'dashed',
           borderWidth: 2,
