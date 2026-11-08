@@ -73,24 +73,43 @@ export function FlowPicker({ value, onChange, appearance }: FlowPickerProps) {
         })}
       </View>
 
-      {/* No Flow choice */}
-      <Pressable
-        onPress={() => onChange('none')}
-        accessibilityRole="radio"
-        accessibilityLabel="No Flow"
-        accessibilityState={{ checked: value === 'none' }}
-        style={[
-          styles.noFlowButton,
-          {
-            backgroundColor: value === 'none' ? colors.backgroundSelected : colors.backgroundElement,
-            borderColor: value === 'none' ? colors.text : 'transparent',
-          },
-        ]}
-      >
-        <Text style={{ color: colors.text, fontSize: 14 * fontScale }}>
-          No Flow
-        </Text>
-      </Pressable>
+      {/* No Flow and Clear actions */}
+      <View style={styles.actionRow}>
+        <Pressable
+          onPress={() => onChange('none')}
+          accessibilityRole="radio"
+          accessibilityLabel="No Flow"
+          accessibilityState={{ checked: value === 'none' }}
+          style={[
+            styles.noFlowButton,
+            {
+              backgroundColor: value === 'none' ? colors.backgroundSelected : colors.backgroundElement,
+              borderColor: value === 'none' ? colors.text : 'transparent',
+            },
+          ]}
+        >
+          <Text style={{ color: colors.text, fontSize: 14 * fontScale }}>
+            No Flow
+          </Text>
+        </Pressable>
+
+        {/* Clear returns null (unanswered) — only shown when a value is set */}
+        {value != null && (
+          <Pressable
+            onPress={() => onChange(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Clear flow"
+          >
+            <Text style={{
+              color: colors.textSecondary,
+              fontSize: 14 * fontScale,
+              textDecorationLine: 'underline',
+            }}>
+              Clear
+            </Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -99,11 +118,11 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.two },
   row: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   dropChoice: { alignItems: 'center', padding: Spacing.one },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   noFlowButton: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
     borderRadius: 12,
     borderWidth: 2,
-    alignSelf: 'flex-start',
   },
 });

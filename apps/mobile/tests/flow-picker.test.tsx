@@ -30,6 +30,17 @@ test('tapping No Flow calls onChange with "none"', () => {
   expect(props.onChange).toHaveBeenCalledWith('none');
 });
 
+test('Clear calls onChange with null', () => {
+  const props = setup({ value: 'heavy' });
+  fireEvent.press(screen.getByRole('button', { name: 'Clear flow' }));
+  expect(props.onChange).toHaveBeenCalledWith(null);
+});
+
+test('Clear is not shown when value is null', () => {
+  setup({ value: null });
+  expect(screen.queryByRole('button', { name: 'Clear flow' })).toBeNull();
+});
+
 test('selected flow level has checked state', () => {
   setup({ value: 'light' });
   const choice = screen.getByRole('radio', { name: 'Light' });
