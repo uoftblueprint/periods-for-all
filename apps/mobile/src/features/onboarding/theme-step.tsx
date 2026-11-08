@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { Colors, OnboardingColors } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
 import type { Settings } from '@/foundation/contracts';
 
@@ -20,9 +20,13 @@ const themeOptions: { value: ColorScheme; label: string }[] = [
 
 export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
   const { colors, fontScale } = appearance;
+  const isDark = value === 'dark';
+  const backgroundColor = isDark ? colors.background : '#FCFBF8';
+  const selectionColor = isDark ? '#FFB4AA' : OnboardingColors.brand;
+  const selectionHalo = isDark ? '#5D3531' : OnboardingColors.brandSoft;
 
   return (
-    <View style={[styles.selection, { backgroundColor: colors.background }]}>
+    <View style={[styles.selection, { backgroundColor }]}>
       <Text
         style={{ color: colors.text, fontSize: 16 * fontScale, lineHeight: 22 * fontScale }}
       >
@@ -53,13 +57,13 @@ export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
               <View
                 style={[
                   styles.selectionRing,
-                  { borderColor: selected ? colors.backgroundSelected : 'transparent' },
+                  { borderColor: selected ? selectionHalo : 'transparent' },
                 ]}
               >
                 <View
                   style={[
                     styles.cardBorder,
-                    { borderColor: selected ? colors.text : 'transparent' },
+                    { borderColor: selected ? selectionColor : 'transparent' },
                   ]}
                 >
                   <View
@@ -91,10 +95,10 @@ export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
                       </Text>
                     </View>
                     {selected && (
-                      <View style={[styles.checkmark, { backgroundColor: colors.text }]}>
+                      <View style={[styles.checkmark, { backgroundColor: selectionColor }]}>
                         <Text
                           accessible={false}
-                          style={[styles.checkmarkText, { color: colors.background }]}
+                          style={styles.checkmarkText}
                         >
                           ✓
                         </Text>
@@ -107,7 +111,7 @@ export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
                 style={[
                   styles.optionLabel,
                   {
-                    color: selected ? colors.text : colors.textSecondary,
+                    color: selected ? selectionColor : colors.textSecondary,
                     fontSize: 16 * fontScale,
                   },
                 ]}
@@ -151,6 +155,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkmarkText: { fontSize: 20, lineHeight: 26 },
+  checkmarkText: { color: OnboardingColors.white, fontSize: 20, lineHeight: 26 },
   optionLabel: { fontWeight: '700' },
 });
