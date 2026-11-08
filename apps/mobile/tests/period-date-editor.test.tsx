@@ -455,13 +455,20 @@ test('dragging across a week adds each visited date to the draft once', async ()
   expect(screen.getByTestId('period-date-editor-scroll').props.scrollEnabled)
     .toBe(true);
   fireEvent(grid, 'responderGrant', {
-    nativeEvent: { pageX: 175, pageY: 236 },
+    nativeEvent: { pageX: 175, pageY: 306 },
   });
   expect(screen.getByTestId('period-date-editor-scroll').props.scrollEnabled)
     .toBe(false);
-  for (const pageX of [225, 275, 325, 375, 425]) {
+  const movePoints = [
+    { pageX: 225, pageY: 166 },
+    { pageX: 275, pageY: 326 },
+    { pageX: 325, pageY: 156 },
+    { pageX: 375, pageY: 316 },
+    { pageX: 425, pageY: 176 },
+  ];
+  for (const { pageX, pageY } of movePoints) {
     fireEvent(grid, 'responderMove', {
-      nativeEvent: { pageX, pageY: 236 },
+      nativeEvent: { pageX, pageY },
     });
   }
   fireEvent(grid, 'responderRelease', { nativeEvent: {} });

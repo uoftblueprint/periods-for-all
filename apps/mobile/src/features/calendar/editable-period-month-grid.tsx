@@ -154,7 +154,9 @@ export function EditablePeriodMonthGrid({
     if (!start) return null;
     return {
       x: start.gridPoint.x + event.nativeEvent.pageX - start.pagePoint.x,
-      y: start.gridPoint.y + event.nativeEvent.pageY - start.pagePoint.y,
+      // Keep date drags in the week where they began. Vertical finger drift
+      // should neither select an adjacent week nor undo dates there.
+      y: start.gridPoint.y,
     };
   };
 
@@ -204,8 +206,7 @@ export function EditablePeriodMonthGrid({
           const start = touchStartRef.current;
           if (disabledRef.current || !start) return false;
           const dx = event.nativeEvent.pageX - start.pagePoint.x;
-          const dy = event.nativeEvent.pageY - start.pagePoint.y;
-          return Math.abs(dx) > 4 || Math.abs(dy) > 4;
+          return Math.abs(dx) > 4;
         }}
         onResponderGrant={(event) => {
           const start = touchStartRef.current;
