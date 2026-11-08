@@ -12,6 +12,7 @@ const choices: { key: TextSize; label: string }[] = [
   { key: 'largest', label: 'Largest (1.75x)' },
 ];
 
+/** Props for the font size onboarding step. */
 export type FontSizeStepProps = {
   value: TextSize;
   onChange: (size: TextSize) => void;

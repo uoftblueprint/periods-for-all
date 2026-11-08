@@ -2,6 +2,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
 
+/** Props for the reduced motion onboarding step. */
 export type MotionStepProps = {
   value: boolean;
   onChange: (reduceMotion: boolean) => void;
