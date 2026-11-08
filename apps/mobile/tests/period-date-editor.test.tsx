@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react-native';
+import { SymbolView } from 'expo-symbols';
 import {
   BackHandler,
   Modal,
@@ -62,6 +63,22 @@ test('renders the Figma editor shell for the supplied month', () => {
     .toBe(false);
   expect(screen.getByLabelText('Next month').props.accessibilityState.disabled)
     .toBe(false);
+});
+
+test('uses theme-aware native calendar and month arrow icons', () => {
+  const props = setup();
+
+  const icons = screen.UNSAFE_getAllByType(SymbolView);
+  expect(icons.map((symbol) => symbol.props.name)).toEqual([
+    { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
+    { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
+    { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
+  ]);
+  expect(icons.map((symbol) => symbol.props.size)).toEqual([16, 24, 24]);
+  expect(icons.map((symbol) => symbol.props.weight))
+    .toEqual(['regular', 'semibold', 'semibold']);
+  expect(icons.map((symbol) => symbol.props.tintColor))
+    .toEqual(Array(3).fill(props.appearance.colors.text));
 });
 
 test('editing dates updates the draft without mutating the supplied dates', () => {

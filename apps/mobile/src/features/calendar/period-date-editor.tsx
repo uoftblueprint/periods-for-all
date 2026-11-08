@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 import {
   useCallback,
   useEffect,
@@ -39,9 +39,23 @@ import {
 const PRIMARY = '#A90D02';
 const PRIMARY_PRESSED = '#7D1912';
 const SECONDARY = '#FEE4E2';
-const TODAY_ICON = require('@/assets/images/calendar-today.png');
-const CHEVRON_LEFT = require('@/assets/images/calendar-chevron-left.png');
-const CHEVRON_RIGHT = require('@/assets/images/calendar-chevron-right.png');
+const TODAY_ICON_NAME = {
+  android: 'calendar_today',
+  ios: 'calendar',
+  web: 'calendar_today',
+} as const;
+const MONTH_ARROW_NAMES = {
+  left: {
+    android: 'chevron_left',
+    ios: 'chevron.left',
+    web: 'chevron_left',
+  },
+  right: {
+    android: 'chevron_right',
+    ios: 'chevron.right',
+    web: 'chevron_right',
+  },
+} as const;
 
 type MonthLoadStatus = 'loaded' | 'loading' | 'error';
 
@@ -238,7 +252,6 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
           accessibilityLabel="Go to today"
           appearance={props.appearance}
           disabled={!todayMonth || saving}
-          icon={TODAY_ICON}
           label="Today"
           onPress={() => {
             if (todayMonth) showMonth(todayMonth);
@@ -268,15 +281,15 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
           <HeaderIconButton
             accessibilityLabel="Previous month"
             appearance={props.appearance}
+            direction="left"
             disabled={!parsedMonth || saving}
-            icon={CHEVRON_LEFT}
             onPress={() => changeMonth(-1)}
           />
           <HeaderIconButton
             accessibilityLabel="Next month"
             appearance={props.appearance}
+            direction="right"
             disabled={!parsedMonth || saving}
-            icon={CHEVRON_RIGHT}
             onPress={() => changeMonth(1)}
           />
         </View>
@@ -453,7 +466,6 @@ type HeaderPillProps = {
   accessibilityLabel: string;
   appearance: Appearance;
   disabled: boolean;
-  icon: number;
   label: string;
   onPress: () => void;
 };
@@ -462,7 +474,6 @@ function HeaderPill({
   accessibilityLabel,
   appearance,
   disabled,
-  icon,
   label,
   onPress,
 }: HeaderPillProps) {
@@ -485,11 +496,12 @@ function HeaderPill({
         opacity: disabled ? 0.5 : 1,
         paddingHorizontal: 12,
       }}>
-      <Image
+      <SymbolView
         accessibilityElementsHidden
-        contentFit="contain"
-        source={icon}
-        style={{ height: 16, width: 16 }}
+        name={TODAY_ICON_NAME}
+        size={16}
+        tintColor={appearance.colors.text}
+        weight="regular"
       />
       <Text style={{
         color: appearance.colors.text,
@@ -504,16 +516,16 @@ function HeaderPill({
 type HeaderIconButtonProps = {
   accessibilityLabel: string;
   appearance: Appearance;
+  direction: keyof typeof MONTH_ARROW_NAMES;
   disabled: boolean;
-  icon: number;
   onPress: () => void;
 };
 
 function HeaderIconButton({
   accessibilityLabel,
   appearance,
+  direction,
   disabled,
-  icon,
   onPress,
 }: HeaderIconButtonProps) {
   return (
@@ -530,11 +542,12 @@ function HeaderIconButton({
         opacity: disabled ? 0.5 : 1,
         width: 39,
       }}>
-      <Image
+      <SymbolView
         accessibilityElementsHidden
-        contentFit="contain"
-        source={icon}
-        style={{ height: 24, width: 24 }}
+        name={MONTH_ARROW_NAMES[direction]}
+        size={24}
+        tintColor={appearance.colors.text}
+        weight="semibold"
       />
     </Pressable>
   );
