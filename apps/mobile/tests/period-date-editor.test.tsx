@@ -26,7 +26,7 @@ function setup(overrides: Partial<PeriodDateEditorProps> = {}) {
     initialMonth: '2026-11',
     today: '2026-11-07',
     appearance: getAppearance(defaultSettings),
-    loadDates: jest.fn(async () => []),
+    loadDates: jest.fn(() => new Promise<string[]>(() => {})),
     onSave: jest.fn(async () => {}),
     onDone: jest.fn(),
     onCancel: jest.fn(),
@@ -338,6 +338,40 @@ test('a newly visited month loads before its dates can be edited', async () => {
   });
 });
 
+test('preloads the previous and next month around the visible month', async () => {
+  const loadDates = jest.fn(async () => []);
+  setup({ loadDates });
+
+  await waitFor(() => {
+    expect(loadDates).toHaveBeenCalledWith('2026-10-01', '2026-10-31');
+    expect(loadDates).toHaveBeenCalledWith('2026-12-01', '2026-12-31');
+  });
+});
+
+test('loaded adjacent dates can be removed from the visible month', async () => {
+  const props = setup({
+    initialDates: [],
+    initialMonth: '2026-10',
+    today: '2026-10-14',
+    loadDates: jest.fn(async (from) => (
+      from === '2026-09-01' ? ['2026-09-30'] : []
+    )),
+  });
+
+  const september30 = await screen.findByLabelText(
+    /September 30, 2026, selected/,
+  );
+  expect(september30.props.accessibilityState.disabled).toBe(false);
+  fireEvent.press(september30);
+
+  fireEvent.press(screen.getByText('Save Dates'));
+  fireEvent.press(screen.getByText('Remove and Save'));
+  await waitFor(() => expect(props.onSave).toHaveBeenCalledWith({
+    add: [],
+    remove: ['2026-09-30'],
+  }));
+});
+
 test('draft changes survive month navigation and loaded months are cached', async () => {
   const props = setup({
     today: '2026-12-31',
@@ -351,7 +385,9 @@ test('draft changes survive month navigation and loaded months are cached', asyn
   fireEvent.press(screen.getByLabelText('Previous month'));
 
   expect(day(2).props.accessibilityState.selected).toBe(false);
-  expect(props.loadDates).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(props.loadDates).mock.calls.filter(
+    ([from]) => from === '2026-12-01',
+  )).toHaveLength(1);
 
   fireEvent.press(screen.getByText('Save Dates'));
   fireEvent.press(screen.getByText('Remove and Save'));
@@ -362,14 +398,18 @@ test('draft changes survive month navigation and loaded months are cached', asyn
 });
 
 test('a failed month load keeps the grid disabled and Retry loads it again', async () => {
-  let attempts = 0;
-  const loadDates = jest.fn(async () => {
-    attempts += 1;
-    if (attempts === 1) throw new Error('demo read failure');
+  let decemberAttempts = 0;
+  const loadDates = jest.fn(async (from: string) => {
+    if (from !== '2026-12-01') return [];
+    decemberAttempts += 1;
+    if (decemberAttempts < 3) throw new Error('demo read failure');
     return ['2026-12-02'];
   });
   setup({ today: '2026-12-31', loadDates });
 
+  await act(async () => {
+    await Promise.resolve();
+  });
   fireEvent.press(screen.getByLabelText('Next month'));
 
   expect(await screen.findByText('Could not load dates. Try again.'))
@@ -381,7 +421,9 @@ test('a failed month load keeps the grid disabled and Retry loads it again', asy
   fireEvent.press(screen.getByText('Retry'));
 
   await waitFor(() => {
-    expect(loadDates).toHaveBeenCalledTimes(2);
+    expect(jest.mocked(loadDates).mock.calls.filter(
+      ([from]) => from === '2026-12-01',
+    )).toHaveLength(3);
     expect(screen.getByLabelText(/December 2, 2026/).props.accessibilityState)
       .toEqual({ disabled: false, selected: true });
   });

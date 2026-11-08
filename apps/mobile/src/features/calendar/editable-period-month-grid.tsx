@@ -12,7 +12,7 @@ import type { Appearance } from '@/features/settings/appearance';
 import type { LocalDate } from '@/features/health/contracts';
 
 import {
-  buildMonthGrid,
+  buildMonthDisplayGrid,
   describeDate,
   parseDate,
   parseMonth,
@@ -41,6 +41,7 @@ export type EditablePeriodMonthGridProps = {
   month: string;
   today: LocalDate;
   selectedDates: readonly LocalDate[];
+  editableMonths: readonly string[];
   onChangeDate: (date: LocalDate, selected: boolean) => void;
   onDraggingChange?: (dragging: boolean) => void;
   onEdgeTouchActiveChange?: (active: boolean) => void;
@@ -53,6 +54,7 @@ export function EditablePeriodMonthGrid({
   month,
   today,
   selectedDates,
+  editableMonths,
   onChangeDate,
   onDraggingChange,
   onEdgeTouchActiveChange,
@@ -60,13 +62,15 @@ export function EditablePeriodMonthGrid({
   disabled = false,
 }: EditablePeriodMonthGridProps) {
   const parsedMonth = parseMonth(month);
-  const weeks = parsedMonth ? buildMonthGrid(parsedMonth) : [];
+  const weeks = parsedMonth ? buildMonthDisplayGrid(parsedMonth) : [];
   const selected = new Set(selectedDates);
   const { colors, fontScale } = appearance;
+  const rowHeight = Math.max(72, Math.ceil(48 + 20 * fontScale));
   const weeksRef = useRef(weeks);
   const selectedRef = useRef(selected);
   const todayRef = useRef(today);
   const disabledRef = useRef(disabled);
+  const editableMonthsRef = useRef(new Set(editableMonths));
   const onChangeDateRef = useRef(onChangeDate);
   const onDraggingChangeRef = useRef(onDraggingChange);
   const onEdgeTouchActiveChangeRef = useRef(onEdgeTouchActiveChange);
@@ -79,6 +83,7 @@ export function EditablePeriodMonthGrid({
   selectedRef.current = selected;
   todayRef.current = today;
   disabledRef.current = disabled;
+  editableMonthsRef.current = new Set(editableMonths);
   onChangeDateRef.current = onChangeDate;
   onDraggingChangeRef.current = onDraggingChange;
   onEdgeTouchActiveChangeRef.current = onEdgeTouchActiveChange;
@@ -97,6 +102,7 @@ export function EditablePeriodMonthGrid({
   const canChangeDate = (date: LocalDate | null): date is LocalDate => (
     date !== null
     && !disabledRef.current
+    && editableMonthsRef.current.has(date.slice(0, 7))
     && isSelectablePeriodDate(date, todayRef.current)
   );
 
@@ -241,29 +247,28 @@ export function EditablePeriodMonthGrid({
         onTouchEnd={clearGesture}
         testID="editable-period-grid">
         {weeks.map((week, weekIndex) => (
-          <View key={weekIndex} style={{ flexDirection: 'row' }}>
-            {week.map((date, dayIndex) => date ? (
+          <View
+            key={weekIndex}
+            style={{ flexDirection: 'row', height: rowHeight }}
+            testID={`editable-period-week-${weekIndex}`}>
+            {week.map((date) => {
+              const outsideMonth = !date.startsWith(`${month}-`);
+              return (
               <EditableDayCell
                 key={date}
                 date={date}
                 today={today}
                 selected={selected.has(date)}
-                disabled={disabled || !isSelectablePeriodDate(date, today)}
+                disabled={disabled
+                  || !editableMonths.includes(date.slice(0, 7))
+                  || !isSelectablePeriodDate(date, today)}
+                outsideMonth={outsideMonth}
                 onChangeDate={onChangeDate}
                 onPressIn={(event) => rememberTouchStart(date, event)}
                 appearance={appearance}
               />
-            ) : (
-              <View
-                key={`blank-${dayIndex}`}
-                style={{
-                  borderColor: colors.backgroundElement,
-                  borderWidth: 0.5,
-                  flex: 1,
-                  minHeight: 72,
-                }}
-              />
-            ))}
+              );
+            })}
           </View>
         ))}
       </View>
@@ -276,6 +281,7 @@ type EditableDayCellProps = {
   today: LocalDate;
   selected: boolean;
   disabled: boolean;
+  outsideMonth: boolean;
   onChangeDate: (date: LocalDate, selected: boolean) => void;
   onPressIn: (event: GestureResponderEvent) => void;
   appearance: Appearance;
@@ -286,6 +292,7 @@ function EditableDayCell({
   today,
   selected,
   disabled,
+  outsideMonth,
   onChangeDate,
   onPressIn,
   appearance,
@@ -320,14 +327,16 @@ function EditableDayCell({
         borderWidth: 0.5,
         flex: 1,
         gap: Spacing.one,
+        height: '100%',
         justifyContent: 'center',
-        minHeight: 72,
-        opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
+        opacity: disabled ? 0.45 : outsideMonth ? 0.68 : pressed ? 0.7 : 1,
         padding: Spacing.two,
       })}>
       <Text
         style={{
-          color: selected ? PERIOD_COLOR : colors.text,
+          color: outsideMonth
+            ? colors.textSecondary
+            : selected ? PERIOD_COLOR : colors.text,
           fontSize: 16 * fontScale,
           fontWeight: selected || date === today ? '700' : '400',
           textAlign: 'center',

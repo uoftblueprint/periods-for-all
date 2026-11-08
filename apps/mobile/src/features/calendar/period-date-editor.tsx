@@ -175,6 +175,14 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
     }
   }, [props.loadDates, props.today]);
 
+  useEffect(() => {
+    const visibleMonth = parseMonth(currentMonth);
+    if (!visibleMonth) return;
+    for (const delta of [-1, 1]) {
+      void loadMonth(formatMonth(addMonths(visibleMonth, delta)));
+    }
+  }, [currentMonth, loadMonth]);
+
   const showMonth = (month: string) => {
     setSaveError(null);
     setCurrentMonth(month);
@@ -187,7 +195,7 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
   };
 
   const changeDate = (date: LocalDate, selected: boolean) => {
-    if (saveInFlight.current || !monthLoaded
+    if (saveInFlight.current || monthStatuses[date.slice(0, 7)] !== 'loaded'
       || !isSelectablePeriodDate(date, props.today)) return;
     setSaveError(null);
     setOverrides((current) => setDraftDateSelected(
@@ -236,6 +244,10 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
     setPendingRemovalChange(null);
     void submitChange(change);
   };
+
+  const editableMonths = Object.entries(monthStatuses)
+    .filter(([, status]) => status === 'loaded')
+    .map(([month]) => month);
 
   return (
     <View style={{ backgroundColor: colors.background, flex: 1 }}>
@@ -359,6 +371,7 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
         <EditablePeriodMonthGrid
           appearance={props.appearance}
           disabled={!monthLoaded || saving}
+          editableMonths={editableMonths}
           month={currentMonth}
           onChangeDate={changeDate}
           onDraggingChange={setDraggingDates}

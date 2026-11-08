@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  addDays, addMonths, buildMonthGrid, daysInMonth, describeDate, formatMonth, monthTitle, parseDate, parseMonth,
+  addDays, addMonths, buildMonthDisplayGrid, buildMonthGrid, daysInMonth, describeDate, formatMonth, monthTitle, parseDate, parseMonth,
 } from '../src/features/calendar/calendar-dates.ts';
 
 test('October 2026 starts on Thursday and has 31 days', () => {
@@ -9,6 +9,29 @@ test('October 2026 starts on Thursday and has 31 days', () => {
   assert.deepEqual(grid[0].slice(0, 5), [null, null, null, null, '2026-10-01']);
   assert.equal(grid.flat().filter(Boolean).length, 31);
   assert.ok(grid.every((week) => week.length === 7));
+});
+
+test('display grids fill empty cells with adjacent-month dates', () => {
+  const grid = buildMonthDisplayGrid({ year: 2023, month: 5 });
+
+  assert.deepEqual(grid[0], [
+    '2023-04-30',
+    '2023-05-01',
+    '2023-05-02',
+    '2023-05-03',
+    '2023-05-04',
+    '2023-05-05',
+    '2023-05-06',
+  ]);
+  assert.deepEqual(grid[grid.length - 1], [
+    '2023-05-28',
+    '2023-05-29',
+    '2023-05-30',
+    '2023-05-31',
+    '2023-06-01',
+    '2023-06-02',
+    '2023-06-03',
+  ]);
 });
 
 test('leap-year February', () => {

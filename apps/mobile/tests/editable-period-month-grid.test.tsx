@@ -12,6 +12,7 @@ function setup(overrides: Partial<EditablePeriodMonthGridProps> = {}) {
   const props: EditablePeriodMonthGridProps = {
     month: '2026-11',
     today: '2026-11-07',
+    editableMonths: ['2026-10', '2026-11', '2026-12'],
     selectedDates: ['2026-11-01', '2026-11-02', '2026-11-03'],
     onChangeDate: jest.fn(),
     appearance: getAppearance(defaultSettings),
@@ -69,6 +70,39 @@ test('future dates are disabled and cannot be selected', () => {
     'This date cannot be changed right now',
   );
   expect(props.onChangeDate).not.toHaveBeenCalled();
+});
+
+test('loaded adjacent-month dates are ghosted and remain editable', () => {
+  const props = setup({
+    editableMonths: ['2026-09', '2026-10', '2026-11'],
+    month: '2026-10',
+    today: '2026-10-14',
+  });
+  const ghostDate = screen.getByLabelText(/September 27, 2026/);
+
+  expect(ghostDate.props.accessibilityState.disabled).toBe(false);
+  expect(ghostDate.props.style.opacity).toBe(0.68);
+  fireEvent.press(ghostDate);
+  expect(props.onChangeDate).toHaveBeenCalledWith('2026-09-27', true);
+});
+
+test('adjacent-month dates stay disabled until their month is loaded', () => {
+  setup({
+    editableMonths: ['2026-10'],
+    month: '2026-10',
+    today: '2026-10-14',
+  });
+
+  expect(screen.getByLabelText(/September 27, 2026/).props.accessibilityState)
+    .toEqual({ disabled: true, selected: false });
+});
+
+test('every week uses the same fixed row height', () => {
+  setup({ month: '2026-10' });
+
+  const heights = screen.getAllByTestId(/editable-period-week-/)
+    .map((week) => week.props.style.height);
+  expect(new Set(heights).size).toBe(1);
 });
 
 test('the whole grid can be disabled while its month is unavailable', () => {
