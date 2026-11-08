@@ -1,40 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Fonts, Spacing } from '@/constants/theme';
+import { useFonts } from 'expo-font';
+import { Colors, Fonts, Spacing } from '@/constants/theme';
+import type { DailyLog, Flow, Mood } from '@/features/health/contracts';
+import {
+  EMOTIONAL_SYMPTOM_OPTIONS, FLOW_OPTIONS, MOOD_OPTIONS, PHYSICAL_SYMPTOM_OPTIONS,
+} from '@/features/health/catalog';
 import type { Appearance } from '@/features/settings/appearance';
-import { describeDate, parseDate } from './calendar-dates';
+import { MONTH_NAMES, WEEKDAY_NAMES, parseDate, weekday } from './calendar-dates';
 
-// S3-01's written contract; replace these types and labels with its exports before merge.
-type LocalDate = string;
-type Mood = 'verySad' | 'sad' | 'neutral' | 'happy' | 'veryHappy';
-type Flow = 'none' | 'veryLight' | 'light' | 'normal' | 'heavy' | 'veryHeavy';
-type DailyLog = {
-  date: LocalDate;
-  mood: Mood | null;
-  flow: Flow | null;
-  physicalSymptoms: string[] | null;
-  emotionalSymptoms: string[] | null;
-  reflection: string | null;
-};
 export type DayDetailsProps = {
   log: DailyLog;
   isPeriodDay: boolean;
   today: string;
   appearance: Appearance;
   onEdit: (date: string) => void;
+  onClose: () => void;
 };
-const moodLabels: Record<Mood, string> = {
-  verySad: 'Very Sad', sad: 'Sad', neutral: 'Neutral', happy: 'Happy', veryHappy: 'Very Happy',
-};
-const flowLabels: Record<Flow, string> = {
-  none: 'No Flow', veryLight: 'Very Light', light: 'Light', normal: 'Normal', heavy: 'Heavy', veryHeavy: 'Very Heavy',
-};
-const symptomLabels: Record<string, string> = {
-  headache: 'Headache', menstrualCramps: 'Menstrual Cramps', backPain: 'Back Pain',
-  migraines: 'Migraines', stomachPain: 'Stomach Pain', moodSwings: 'Mood Swings',
-  difficultyConcentrating: 'Difficulty Concentrating', anxiety: 'Anxiety',
-  fatigue: 'Fatigue', lowMotivation: 'Low Motivation',
+const symptomOptions = [...PHYSICAL_SYMPTOM_OPTIONS, ...EMOTIONAL_SYMPTOM_OPTIONS];
+const lightColors = {
+  ...Colors.light, background: '#fcfbf8', text: '#31281b', textSecondary: '#5a482f',
+  backgroundElement: '#f2eade', backgroundSelected: '#f2eade',
 };
 
 const moodImages: Record<Mood, number> = {
@@ -52,12 +39,37 @@ const flowImages: Record<Flow, number> = {
   heavy: require('@/assets/images/day-details/flow-heavy.svg'),
   veryHeavy: require('@/assets/images/day-details/flow-veryHeavy.svg'),
 };
+const symptomImages = new Map<string, number>([
+  ['headache', require('@/assets/images/day-details/symptom-headache.svg')],
+  ['menstrualCramps', require('@/assets/images/day-details/symptom-menstrualCramps.svg')],
+  ['backPain', require('@/assets/images/day-details/symptom-backPain.svg')],
+  ['migraines', require('@/assets/images/day-details/symptom-migraines.svg')],
+  ['stomachPain', require('@/assets/images/day-details/symptom-stomachPain.svg')],
+  ['fatigue', require('@/assets/images/day-details/symptom-fatigue.svg')],
+  ['moodSwings', require('@/assets/images/day-details/symptom-moodSwings.svg')],
+  ['difficultyConcentrating', require('@/assets/images/day-details/symptom-difficultyConcentrating.svg')],
+  ['anxiety', require('@/assets/images/day-details/symptom-anxiety.svg')],
+  ['lowMotivation', require('@/assets/images/day-details/symptom-lowMotivation.svg')],
+]);
 
-export function DayDetails({ log, isPeriodDay, today, appearance, onEdit }: DayDetailsProps) {
+export function DayDetails({ log, isPeriodDay, today, appearance, onEdit, onClose }: DayDetailsProps) {
+  const [fontLoaded] = useFonts({
+    Atkinson: require('@/assets/fonts/AtkinsonHyperlegible-Regular.ttf'),
+    AtkinsonBold: require('@/assets/fonts/AtkinsonHyperlegible-Bold.ttf'),
+  });
   const [expanded, setExpanded] = useState(false);
   const scroll = useRef<ScrollView>(null);
-  const { colors, fontScale } = appearance;
-  const text = { color: colors.text, fontFamily: Fonts.sans, fontSize: 16 * fontScale };
+  const { fontScale } = appearance;
+  const light = appearance.colors === Colors.light;
+  const dark = appearance.colors === Colors.dark;
+  const contrast = appearance.colors === Colors.highContrast;
+  const colors = light ? lightColors : appearance.colors;
+  const chip = contrast ? { fill: colors.backgroundElement, ink: colors.text, border: colors.text }
+    : dark ? { fill: colors.backgroundElement, ink: colors.text, border: colors.backgroundSelected }
+    : { fill: '#f2eade', ink: '#31281b', border: '#e4d7c4' };
+  const action = contrast ? { fill: colors.text, ink: colors.background } : { fill: '#a90d02', ink: '#fff' };
+  const text = { color: colors.text, fontFamily: fontLoaded ? 'Atkinson' : Fonts.sans, fontSize: 16 * fontScale };
+  const bold = { fontFamily: fontLoaded ? 'AtkinsonBold' : Fonts.sans, fontWeight: '700' as const };
   const date = parseDate(log.date);
   const answered = [log.mood, log.flow, log.physicalSymptoms, log.emotionalSymptoms, log.reflection]
     .some((value) => value !== null);
@@ -80,30 +92,38 @@ export function DayDetails({ log, isPeriodDay, today, appearance, onEdit }: DayD
     <View style={[styles.card, {
       height: expanded ? '100%' : '50%',
       backgroundColor: colors.background, borderColor: colors.backgroundSelected,
+      boxShadow: light ? '0px -2px 4px rgba(228,215,196,0.5)' : undefined,
     }]}>
-      <View {...handle.panHandlers} style={styles.handleArea}
-        accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={[styles.handle, { backgroundColor: colors.textSecondary }]} />
+      <View>
+        <View {...handle.panHandlers} style={styles.handleArea}
+          accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <View style={[styles.handle, { backgroundColor: light ? '#e4d7c4' : colors.textSecondary }]} />
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close details"
+          onPress={onClose} style={styles.close}>
+          <Image source={require('@/assets/images/day-details/close.svg')} contentFit="contain"
+            tintColor={colors.textSecondary} accessible={false} accessibilityLabel="" style={styles.closeIcon} />
+        </Pressable>
       </View>
       <ScrollView ref={scroll} style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text accessibilityRole="header" style={[text, styles.bold, { fontSize: 23 * fontScale }]}>
-          {date ? describeDate(date) : 'Invalid date'}
+        <Text accessibilityRole="header" style={[text, bold, { fontSize: 23 * fontScale }]}>
+          {date ? `${WEEKDAY_NAMES[weekday(date.year, date.month, date.day)].slice(0, 3)}, ${MONTH_NAMES[date.month - 1]} ${date.day}` : 'Invalid date'}
         </Text>
-        <Text style={[text, { color: colors.textSecondary }]}>
-          {isPeriodDay ? 'Recorded period day' : 'Not marked as a period day'}
-        </Text>
+        {isPeriodDay && <View style={[styles.periodBadge, { backgroundColor: chip.fill, borderColor: chip.border }]}>
+          <Text style={[text, bold, { color: chip.ink, fontSize: 12 * fontScale }]}>Period day</Text>
+        </View>}
         <Pressable accessibilityRole="button" aria-expanded={expanded}
-          onPress={() => setExpanded(!expanded)} style={styles.button}>
-          <Text style={[text, styles.bold]}>{expanded ? 'Collapse details' : 'Expand details'}</Text>
+          onPress={() => setExpanded(!expanded)} style={[styles.button, { borderColor: colors.textSecondary }]}>
+          <Text style={[text, bold]}>{expanded ? 'Collapse details' : 'Expand details'}</Text>
         </Pressable>
-        {!answered ? <Text style={text}>Nothing recorded for this day</Text> : <>
+        {!answered ? <Text style={text}>No experiences tracked on this day.</Text> : <>
           {(['mood', 'flow'] as const).map((field) => (
             <View key={field} style={[styles.section, { borderColor: colors.backgroundSelected }]}>
-              <Text style={[text, { fontSize: 14 * fontScale }]}>{field === 'mood' ? 'Mood' : 'Flow'}</Text>
+              <Text style={[text, { fontSize: 14 * fontScale }]}>{field === 'mood' ? 'Mood' : 'Period Flow'}</Text>
               <View style={styles.row}>
-                <Text style={[text, styles.bold, styles.value]}>{field === 'mood'
-                  ? (log.mood === null ? 'Not recorded' : moodLabels[log.mood])
-                  : (log.flow === null ? 'Not recorded' : flowLabels[log.flow])}</Text>
+                <Text style={[text, bold, styles.value]}>{field === 'mood'
+                  ? (log.mood === null ? 'Not recorded' : MOOD_OPTIONS.find(({ id }) => id === log.mood)?.label)
+                  : (log.flow === null ? 'Not recorded' : FLOW_OPTIONS.find(({ id }) => id === log.flow)?.label)}</Text>
                 {field === 'mood' && log.mood !== null && (
                   <Image source={moodImages[log.mood]} contentFit="contain"
                     accessible={false} accessibilityLabel="" style={styles.mood} />
@@ -118,13 +138,17 @@ export function DayDetails({ log, isPeriodDay, today, appearance, onEdit }: DayD
           {(['physicalSymptoms', 'emotionalSymptoms'] as const).map((field) => (
             <View key={field} style={[styles.section, { borderColor: colors.backgroundSelected }]}>
               <Text style={[text, { fontSize: 14 * fontScale }]}>
-                {field === 'physicalSymptoms' ? 'Physical symptoms' : 'Emotional symptoms'}
+                {field === 'physicalSymptoms' ? 'Physical Symptoms' : 'Emotional Symptoms'}
               </Text>
               <View style={styles.row}>
                 {log[field]?.length ? log[field].map((id, index) => (
-                  <Text key={`${id}-${index}`} style={[text, styles.pill, { backgroundColor: colors.backgroundElement }]}>
-                    {symptomLabels[id] ?? id}
-                  </Text>
+                  <View key={`${id}-${index}`} style={[styles.pill, { backgroundColor: chip.fill, borderColor: chip.border }]}>
+                    {symptomImages.has(id) && <Image source={symptomImages.get(id)} contentFit="contain"
+                      tintColor={dark ? chip.ink : undefined} accessible={false} accessibilityLabel="" style={styles.symptom} />}
+                    <Text style={[text, bold, { color: chip.ink, flexShrink: 1 }]}>
+                      {symptomOptions.find((option) => option.id === id)?.label ?? id}
+                    </Text>
+                  </View>
                 )) : <Text style={text}>
                   {log[field] === null ? 'Not recorded'
                     : field === 'physicalSymptoms' ? 'No physical symptoms' : 'No emotional symptoms'}
@@ -133,13 +157,13 @@ export function DayDetails({ log, isPeriodDay, today, appearance, onEdit }: DayD
             </View>
           ))}
           <View style={[styles.section, { borderColor: colors.backgroundSelected }]}>
-            <Text style={[text, { fontSize: 14 * fontScale }]}>Reflection</Text>
+            <Text style={[text, { fontSize: 14 * fontScale }]}>Daily Reflection</Text>
             <Text style={text}>{log.reflection ?? 'Not recorded'}</Text>
           </View>
         </>}
         {canEdit && <Pressable accessibilityRole="button" onPress={() => onEdit(log.date)}
-          style={[styles.button, { backgroundColor: colors.text }]}>
-          <Text style={[text, styles.bold, { color: colors.background }]}>{answered ? 'Edit' : 'Track'}</Text>
+          style={[styles.button, { marginTop: 'auto', backgroundColor: action.fill, borderColor: contrast ? colors.text : action.fill }]}>
+          <Text style={[text, bold, { color: action.ink }]}>{answered ? 'Edit Log' : 'Track'}</Text>
         </Pressable>}
       </ScrollView>
     </View>
@@ -148,16 +172,20 @@ export function DayDetails({ log, isPeriodDay, today, appearance, onEdit }: DayD
 
 const styles = StyleSheet.create({
   card: { borderTopLeftRadius: 16, borderTopRightRadius: 16, borderWidth: 1, overflow: 'hidden' },
-  handleArea: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  handle: { width: 100, height: 4, borderRadius: 2 },
+  close: { position: 'absolute', left: 14, top: 6, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  closeIcon: { width: 24, height: 24 },
+  handleArea: { marginHorizontal: 64, minHeight: 52, paddingTop: 16, alignItems: 'center' },
+  handle: { width: 134, height: 4, borderRadius: 2 },
   scroll: { flex: 1 },
-  content: { padding: Spacing.four, paddingTop: 0, gap: Spacing.three },
+  content: { flexGrow: 1, padding: Spacing.four, paddingTop: 0, paddingBottom: 40, gap: Spacing.three },
   section: { borderTopWidth: 1, paddingTop: Spacing.three, gap: Spacing.two },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.two },
   value: { flexGrow: 1, flexShrink: 1 },
-  bold: { fontWeight: '700' },
-  pill: { borderRadius: 12, padding: Spacing.two, maxWidth: '100%' },
-  button: { minHeight: 44, padding: Spacing.two, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  periodBadge: { alignSelf: 'flex-start', borderRadius: 100, borderWidth: 1, paddingVertical: 4, paddingHorizontal: 8 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, borderRadius: 100, borderWidth: 1,
+    minHeight: 40, paddingVertical: Spacing.two, paddingHorizontal: 12, maxWidth: '100%' },
+  button: { minHeight: 48, padding: 12, borderRadius: 100, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   mood: { width: 32, height: 32 },
   flow: { width: 135, height: 32, maxWidth: '100%' },
+  symptom: { width: 24, height: 24 },
 });

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DayDetails, type DayDetailsProps } from '@/features/calendar/day-details';
+import { FLOW_OPTIONS, MOOD_OPTIONS } from '@/features/health/catalog';
 import { getAppearance } from '@/features/settings/appearance';
 import { Colors, FontScale, MaxContentWidth, Spacing } from '@/constants/theme';
 import { defaultSettings, type Settings } from '@/foundation/contracts';
@@ -21,12 +22,13 @@ const examples = [
   { name: 'Long reflection', log: { ...filled, date: '2026-11-03', reflection: 'A quiet day. I took breaks, drank water and wrote down how I felt. '.repeat(25) } },
   { name: 'Future', log: { ...empty, date: '2026-11-07' } },
 ] satisfies { name: string; log: DayDetailsProps['log'] }[];
-const moods = ['verySad', 'sad', 'neutral', 'happy', 'veryHappy'] as const;
-const flows = ['none', 'veryLight', 'light', 'normal', 'heavy', 'veryHeavy'] as const;
+const moods = MOOD_OPTIONS.map(({ id }) => id);
+const flows = FLOW_OPTIONS.map(({ id }) => id);
 const themes = Object.keys(Colors) as Settings['colorScheme'][];
 const sizes = Object.keys(FontScale) as Settings['textSize'][];
 
 export default function DayDetailsPreview() {
+  const [visible, setVisible] = useState(true);
   const [example, setExample] = useState(0);
   const [theme, setTheme] = useState(0);
   const [size, setSize] = useState(0);
@@ -39,6 +41,7 @@ export default function DayDetailsPreview() {
   return (
     <View style={[styles.page, { backgroundColor: appearance.colors.backgroundElement }]}>
       <ScrollView style={styles.controls} contentContainerStyle={{ gap: Spacing.two }}>
+        <Button title="Show card" disabled={visible} onPress={() => setVisible(true)} />
         <Button title={`Example: ${examples[example].name}`} onPress={() => setExample((example + 1) % examples.length)} />
         <Button title={`Theme: ${themes[theme]}`} onPress={() => setTheme((theme + 1) % themes.length)} />
         <Button title={`Text size: ${sizes[size]}`} onPress={() => setSize((size + 1) % sizes.length)} />
@@ -47,7 +50,7 @@ export default function DayDetailsPreview() {
         <Text accessibilityLiveRegion="polite" style={{ color: appearance.colors.text }}>{edited}</Text>
       </ScrollView>
       <View style={styles.host}>
-        <DayDetails log={log} isPeriodDay={artwork} today={today} appearance={appearance} onEdit={(date) => setEdited(`Edit requested: ${date}`)} />
+        {visible && <DayDetails onClose={() => setVisible(false)} log={log} isPeriodDay={artwork} today={today} appearance={appearance} onEdit={(date) => setEdited(`Edit requested: ${date}`)} />}
       </View>
     </View>
   );
