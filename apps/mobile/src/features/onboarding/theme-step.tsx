@@ -1,113 +1,120 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { OnboardingColors, OnboardingFonts, Spacing } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
-import { colorSchemes, type Settings } from '@/foundation/contracts';
+import type { Settings } from '@/foundation/contracts';
 
-export type ThemeStepProps = {
+export interface ThemeStepProps {
   value: Settings['colorScheme'];
   onChange: (value: Settings['colorScheme']) => void;
   appearance: Appearance;
-};
+}
 
-const options: Record<
-  Settings['colorScheme'],
-  { label: string; outer: string; inner: string; text: string; innerBorder: string }
-> = {
-  light: {
-    label: 'Default',
-    outer: OnboardingColors.white,
-    inner: '#F9F4EC',
-    text: '#31281B',
-    innerBorder: OnboardingColors.border,
-  },
-  highContrast: {
-    label: 'High Contrast',
-    outer: OnboardingColors.white,
-    inner: '#FCFBF8',
-    text: '#000000',
-    innerBorder: '#5A482F',
-  },
-  dark: {
-    label: 'Dark Mode',
-    outer: OnboardingColors.darkPreviewSurface,
-    inner: OnboardingColors.darkPreview,
-    text: '#FCFBF8',
-    innerBorder: OnboardingColors.darkPreview,
-  },
-};
+type ColorScheme = Settings['colorScheme'];
+
+const themeOptions: { value: ColorScheme; label: string }[] = [
+  { value: 'light', label: 'Default' },
+  { value: 'highContrast', label: 'High Contrast' },
+  { value: 'dark', label: 'Dark Mode' },
+];
 
 export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
   const { colors, fontScale } = appearance;
 
   return (
-    <View style={styles.content}>
+    <View style={[styles.selection, { backgroundColor: colors.background }]}>
       <Text
-        style={[
-          styles.body,
-          { color: colors.text, fontSize: 16 * fontScale, lineHeight: 20 * fontScale },
-        ]}
+        style={{ color: colors.text, fontSize: 16 * fontScale, lineHeight: 22 * fontScale }}
       >
         Choose your colour theme settings.
       </Text>
-      <View accessibilityRole="radiogroup" style={styles.cards}>
-        {colorSchemes.map((scheme) => {
-          const selected = scheme === value;
-          const option = options[scheme];
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Colour theme"
+        style={styles.options}
+      >
+        {themeOptions.map((theme) => {
+          const selected = value === theme.value;
+          const preview = Colors[theme.value];
+
           return (
-            <View key={scheme} style={styles.option}>
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityLabel={option.label}
-                accessibilityState={{ checked: selected }}
-                onPress={() => onChange(scheme)}
-                style={({ pressed }) => [
-                  styles.selectionHalo,
-                  selected ? styles.selectionHaloSelected : styles.selectionHaloUnselected,
-                  pressed && styles.pressed,
+            <Pressable
+              key={theme.value}
+              onPress={() => onChange(theme.value)}
+              accessibilityRole="radio"
+              aria-checked={selected}
+              accessibilityState={{ checked: selected }}
+              accessibilityLabel={theme.label}
+              style={({ pressed }) => [
+                styles.option,
+                { width: 104 * fontScale, opacity: pressed ? 0.75 : 1 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.selectionRing,
+                  { borderColor: selected ? colors.backgroundSelected : 'transparent' },
                 ]}
               >
                 <View
                   style={[
-                    styles.preview,
-                    {
-                      backgroundColor: option.outer,
-                      borderColor: selected ? OnboardingColors.brand : OnboardingColors.border,
-                      borderWidth: selected ? 4 : 1,
-                    },
+                    styles.cardBorder,
+                    { borderColor: selected ? colors.text : 'transparent' },
                   ]}
                 >
                   <View
                     style={[
-                      styles.previewInset,
-                      { backgroundColor: option.inner, borderColor: option.innerBorder },
+                      styles.card,
+                      {
+                        backgroundColor: preview.backgroundElement,
+                        borderColor: preview.backgroundSelected,
+                      },
                     ]}
                   >
-                    <Text style={[styles.previewLetters, { color: option.text }]}>
-                      <Text style={styles.previewLargeLetter}>A</Text>
-                      <Text style={styles.previewSmallLetter}>A</Text>
-                    </Text>
-                  </View>
-                  {selected && (
-                    <View style={styles.check}>
-                      <Text style={styles.checkmark}>✓</Text>
+                    <View
+                      style={[
+                        styles.sample,
+                        {
+                          backgroundColor: preview.background,
+                          borderColor: preview.backgroundSelected,
+                        },
+                      ]}
+                    >
+                      <Text
+                        accessible={false}
+                        style={[
+                          styles.sampleText,
+                          { color: preview.text, fontSize: 32 * fontScale },
+                        ]}
+                      >
+                        Aa
+                      </Text>
                     </View>
-                  )}
+                    {selected && (
+                      <View style={[styles.checkmark, { backgroundColor: colors.text }]}>
+                        <Text
+                          accessible={false}
+                          style={[styles.checkmarkText, { color: colors.background }]}
+                        >
+                          ✓
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </Pressable>
+              </View>
               <Text
                 style={[
-                  styles.label,
+                  styles.optionLabel,
                   {
-                    color: selected ? OnboardingColors.brand : colors.text,
+                    color: selected ? colors.text : colors.textSecondary,
                     fontSize: 16 * fontScale,
-                    lineHeight: 20 * fontScale,
                   },
                 ]}
               >
-                {option.label}
+                {theme.label}
               </Text>
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -116,51 +123,34 @@ export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
 }
 
 const styles = StyleSheet.create({
-  content: { width: '100%', gap: Spacing.three },
-  body: { fontFamily: OnboardingFonts.regular },
-  cards: { width: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: 20 },
-  option: { flex: 1, minWidth: 0, gap: 8 },
-  selectionHalo: { width: '100%', height: 107, borderRadius: 16 },
-  selectionHaloSelected: { padding: 8, backgroundColor: OnboardingColors.brandSoft },
-  selectionHaloUnselected: { padding: 0 },
-  preview: {
-    flex: 1,
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-    paddingLeft: 12,
-    paddingTop: 12,
-    borderRadius: 12,
-  },
-  previewInset: {
-    width: '86%',
-    height: '82%',
-    justifyContent: 'center',
-    paddingLeft: 12,
-    borderLeftWidth: 1,
-    borderTopWidth: 1,
-    borderTopLeftRadius: 12,
-  },
-  previewLetters: { fontFamily: OnboardingFonts.bold, lineHeight: 38 },
-  previewLargeLetter: { fontSize: 33 },
-  previewSmallLetter: { fontSize: 23 },
-  check: {
+  selection: { gap: 16 },
+  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' },
+  option: { maxWidth: '100%', gap: 12 },
+  selectionRing: { aspectRatio: 1, borderWidth: 4, borderRadius: 22, margin: -8 },
+  cardBorder: { flex: 1, borderWidth: 4, borderRadius: 18 },
+  card: { flex: 1, borderWidth: 1, borderRadius: 12, overflow: 'hidden' },
+  sample: {
     position: 'absolute',
-    right: 8,
-    bottom: 8,
+    top: 16,
+    left: 16,
+    right: -1,
+    bottom: -1,
+    borderWidth: 1,
+    borderTopLeftRadius: 12,
+    paddingTop: 16,
+    paddingLeft: 16,
+  },
+  sampleText: { fontWeight: '700' },
+  checkmark: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
     width: 28,
     height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
-    backgroundColor: OnboardingColors.brand,
   },
-  checkmark: {
-    color: OnboardingColors.white,
-    fontFamily: OnboardingFonts.bold,
-    fontSize: 15,
-    lineHeight: 18,
-  },
-  label: { fontFamily: OnboardingFonts.bold },
-  pressed: { opacity: 0.72 },
+  checkmarkText: { fontSize: 20, lineHeight: 26 },
+  optionLabel: { fontWeight: '700' },
 });
