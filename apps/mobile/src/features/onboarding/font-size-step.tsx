@@ -25,7 +25,7 @@ export function FontSizeStep({ value, onChange, appearance }: FontSizeStepProps)
 
   return (
     <View style={styles.content}>
-      <Text style={[styles.explanation, { color: colors.textSecondary, fontSize: 16 * fontScale, lineHeight: 24 * fontScale }]}>
+      <Text style={{ color: colors.textSecondary, fontSize: 16 * fontScale, lineHeight: 24 * fontScale }}>
         This will change how large the font is on screen.
       </Text>
 
@@ -69,9 +69,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.three,
     gap: Spacing.three,
-  },
-  explanation: {
-    fontSize: 16,
   },
   choices: {
     gap: Spacing.two,

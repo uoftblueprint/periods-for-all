@@ -14,7 +14,7 @@ export function MotionStep({ value, onChange, appearance }: MotionStepProps) {
 
   return (
     <View style={styles.content}>
-      <Text style={[styles.explanation, { color: colors.textSecondary, fontSize: 16 * fontScale, lineHeight: 24 * fontScale }]}>
+      <Text style={{ color: colors.textSecondary, fontSize: 16 * fontScale, lineHeight: 24 * fontScale }}>
         This will change how much motion there is throughout the app.
       </Text>
 
@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     gap: Spacing.three,
   },
-  explanation: {},
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
