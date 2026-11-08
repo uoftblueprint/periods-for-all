@@ -17,7 +17,7 @@ type Palette = Readonly<
 export const Colors: Readonly<Record<Settings['colorScheme'], Palette>> = {
   light: {
     text: '#000000',
-    background: '#ffffff',
+    background: '#FCFBF8',
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
