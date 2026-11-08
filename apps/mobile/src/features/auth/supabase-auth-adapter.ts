@@ -94,4 +94,3 @@ export function createAuthFromClient(auth: AuthClient): AuthService {
     },
   };
 }
-

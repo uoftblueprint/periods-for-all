@@ -4,12 +4,13 @@ import {
   useFonts,
 } from '@expo-google-fonts/atkinson-hyperlegible';
 import { SymbolView } from 'expo-symbols';
-import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { OnboardingColors, OnboardingFonts, Spacing } from '@/constants/theme';
 import { getAppearance } from '@/features/settings/appearance';
+import { focusHeading } from '@/foundation/preview-screen';
 import type { Settings } from '@/foundation/contracts';
 
 import { DisplayIntro } from './display-intro';
@@ -62,6 +63,11 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const finishInFlight = useRef(false);
+  const scroll = useRef<ScrollView>(null);
+  const heading = useRef<Text>(null);
+  const focusedHeading = useRef<Text | null>(null);
+  const { fontScale: systemFontScale } = useWindowDimensions();
+  useEffect(() => { scroll.current?.scrollTo({ y: 0, animated: false }); }, [position]);
   const appearance = getAppearance(settings);
   const { colors, fontScale } = appearance;
 
@@ -86,7 +92,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   }
 
   function navigate(action: DisplayAction) {
-    if (saving) return;
+    if (finishInFlight.current) return;
     const { navigation } = transitionDisplayFlow({ position, settings }, action);
     setError(null);
     if (navigation.type === 'position') setPosition(navigation.position);
@@ -99,26 +105,27 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   const skipLabel = details?.skipLabel ?? 'Skip to period information';
 
   if (fontError) throw fontError;
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded) return <Text accessibilityLiveRegion="polite">Loading display setup…</Text>;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={[styles.frame, { backgroundColor: colors.background }]}>
-        <DisplayHeader
-          details={details}
-          fontScale={fontScale}
-          color={colors.text}
-          buttonColor={colors.backgroundElement}
-          buttonBorderColor={colors.backgroundSelected}
-          disabled={saving}
-          onBack={() => navigate('back')}
-        />
-
         <ScrollView
+          key={Platform.OS === 'ios' ? systemFontScale : undefined}
+          ref={scroll}
           style={styles.scroller}
           contentContainerStyle={styles.scrollerContent}
           showsVerticalScrollIndicator={false}
         >
+          <DisplayHeader
+            details={details}
+            fontScale={fontScale}
+            color={colors.text}
+            buttonColor={colors.backgroundElement}
+            buttonBorderColor={colors.backgroundSelected}
+            disabled={saving}
+            onBack={() => navigate('back')}
+          />
           <View
             accessibilityState={{ disabled: saving }}
             style={[
@@ -132,9 +139,17 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
             ]}
           >
             <View style={styles.stepContent}>
+              <Text ref={heading} tabIndex={-1} accessibilityRole="header"
+                onLayout={() => {
+                  if (heading.current && focusedHeading.current !== heading.current) {
+                    focusedHeading.current = heading.current;
+                    focusHeading(heading.current);
+                  }
+                }} style={{ color: colors.text, fontSize: 16 * fontScale }}>Display setup</Text>
               {position === 'introduction' && <DisplayIntro appearance={appearance} />}
               {position === 'font' && (
                 <FontSizeStep
+                  disabled={saving}
                   value={settings.textSize}
                   onChange={(textSize) => updateSettings({ ...settings, textSize })}
                   appearance={appearance}
@@ -142,6 +157,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
               )}
               {position === 'motion' && (
                 <MotionStep
+                  disabled={saving}
                   value={settings.reduceMotion}
                   onChange={(reduceMotion) => updateSettings({ ...settings, reduceMotion })}
                   appearance={appearance}
@@ -149,6 +165,7 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
               )}
               {position === 'theme' && (
                 <ThemeStep
+                  disabled={saving}
                   value={settings.colorScheme}
                   onChange={(colorScheme) => updateSettings({ ...settings, colorScheme })}
                   appearance={appearance}
@@ -352,12 +369,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   frame: { flex: 1, width: '100%', maxWidth: 402, alignSelf: 'center' },
   header: { minHeight: 98, paddingTop: Spacing.five, paddingBottom: Spacing.three },
-  headerBar: { minHeight: 50, justifyContent: 'center' },
+  headerBar: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   backButton: {
-    position: 'absolute',
-    left: Spacing.four,
-    top: 0,
-    zIndex: 1,
+    flexShrink: 0,
     width: 50,
     height: 50,
     alignItems: 'center',
@@ -370,17 +384,16 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  heading: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 80 },
+  heading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stepLabel: { fontFamily: OnboardingFonts.regular, textAlign: 'center' },
   title: { fontFamily: OnboardingFonts.bold, textAlign: 'center' },
   scroller: { flex: 1 },
   scrollerContent: {
     flexGrow: 1,
-    justifyContent: 'flex-end',
     paddingHorizontal: Spacing.four,
     paddingBottom: 40,
   },
-  contentAndActions: { width: '100%' },
+  contentAndActions: { width: '100%', flexGrow: 1, justifyContent: 'flex-end' },
   introSpacing: { gap: 150 },
   fontSpacing: { gap: 74 },
   stepSpacing: { gap: 80 },

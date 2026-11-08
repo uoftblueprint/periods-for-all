@@ -1,4 +1,5 @@
 import { View, Text, TextInput } from 'react-native';
+import type { Appearance } from '@/features/settings/appearance';
 import type { TextFieldProps } from '../foundation/contracts';
 import { Fonts, Spacing } from '../constants/theme';
 
@@ -15,10 +16,10 @@ import { Fonts, Spacing } from '../constants/theme';
  * @returns The field container, including its label, input, and optional error.
  */
 export function TextField({
-    label, value, onChangeText, error, secureTextEntry, keyboardType, editable,
+    label, value, onChangeText, error, secureTextEntry, keyboardType, editable, appearance,
     autoCorrect = keyboardType === 'email-address' || secureTextEntry ? false : true,
     autoCapitalize = keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences',
-}: TextFieldProps) {
+}: TextFieldProps & { appearance?: Appearance }) {
 
     return (
         <View style={{
@@ -26,16 +27,22 @@ export function TextField({
         }}>
             <Text style={{
                 fontFamily: Fonts.sans,
+                color: appearance?.colors.text,
+                fontSize: appearance ? 16 * appearance.fontScale : undefined,
             }}
             >
                 {label}
             </Text>
             <TextInput style={{
                 borderWidth: 1,
-                borderColor: error ? 'red' : 'gray',
+                borderColor: error ? 'red' : (appearance?.colors.textSecondary ?? 'gray'),
+                color: appearance?.colors.text,
+                backgroundColor: appearance?.colors.backgroundElement,
+                fontSize: appearance ? 16 * appearance.fontScale : undefined,
                 padding: Spacing.one,
                 borderRadius: 4,
             }}
+                placeholderTextColor={appearance?.colors.textSecondary}
                 placeholder={`Enter ${label.toLowerCase()}`}
                 onChangeText={onChangeText}
                 autoCorrect={autoCorrect}
@@ -47,7 +54,7 @@ export function TextField({
                 accessibilityLabel={label}
                 accessibilityHint={`Input field for ${label}`}
             />
-            {error ? <Text accessibilityRole="alert">{error}</Text> :null}
+            {error ? <Text style={appearance && { color: appearance.colors.text, fontSize: 14 * appearance.fontScale }} accessibilityRole="alert">{error}</Text> :null}
         </View>
     )
 }

@@ -2,12 +2,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, OnboardingColors } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
+import { useRadioGroup } from './use-radio-group';
 import type { Settings } from '@/foundation/contracts';
 
 export interface ThemeStepProps {
   value: Settings['colorScheme'];
   onChange: (value: Settings['colorScheme']) => void;
   appearance: Appearance;
+  disabled?: boolean;
 }
 
 type ColorScheme = Settings['colorScheme'];
@@ -18,8 +20,9 @@ const themeOptions: { value: ColorScheme; label: string }[] = [
   { value: 'dark', label: 'Dark Mode' },
 ];
 
-export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
+export function ThemeStep({ value, onChange, appearance, disabled = false }: ThemeStepProps) {
   const { colors, fontScale } = appearance;
+  const radioProps = useRadioGroup(themeOptions.map((theme) => theme.value), value, onChange, disabled);
   const isDark = value === 'dark';
   const backgroundColor = isDark ? colors.background : '#FCFBF8';
   const selectionColor = isDark ? '#FFB4AA' : OnboardingColors.brand;
@@ -37,17 +40,14 @@ export function ThemeStep({ value, onChange, appearance }: ThemeStepProps) {
         accessibilityLabel="Colour theme"
         style={styles.options}
       >
-        {themeOptions.map((theme) => {
+        {themeOptions.map((theme, index) => {
           const selected = value === theme.value;
           const preview = Colors[theme.value];
 
           return (
             <Pressable
               key={theme.value}
-              onPress={() => onChange(theme.value)}
-              accessibilityRole="radio"
-              aria-checked={selected}
-              accessibilityState={{ checked: selected }}
+              {...radioProps(index)}
               accessibilityLabel={theme.label}
               style={({ pressed }) => [
                 styles.option,

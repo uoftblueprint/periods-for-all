@@ -29,6 +29,6 @@ test('selected choice has checked state', () => {
 
 test('non-selected choice has unchecked state', () => {
   setup({ value: 'standard' });
-  const other = screen.getByRole('radio', { name: /large \(1\.25/i });
+  const other = screen.getByRole('radio', { name: /^large$/i });
   expect(other.props.accessibilityState).toEqual(expect.objectContaining({ checked: false }));
 });
