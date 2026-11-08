@@ -110,16 +110,6 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={[styles.frame, { backgroundColor: colors.background }]}>
-        <DisplayHeader
-          details={details}
-          fontScale={fontScale}
-          color={colors.text}
-          buttonColor={colors.backgroundElement}
-          buttonBorderColor={colors.backgroundSelected}
-          disabled={saving}
-          onBack={() => navigate('back')}
-        />
-
         <ScrollView
           key={Platform.OS === 'ios' ? systemFontScale : undefined}
           ref={scroll}
@@ -127,6 +117,15 @@ export function DisplaySetup({ settings, onChange, onFinish, onExit }: DisplaySe
           contentContainerStyle={styles.scrollerContent}
           showsVerticalScrollIndicator={false}
         >
+          <DisplayHeader
+            details={details}
+            fontScale={fontScale}
+            color={colors.text}
+            buttonColor={colors.backgroundElement}
+            buttonBorderColor={colors.backgroundSelected}
+            disabled={saving}
+            onBack={() => navigate('back')}
+          />
           <View
             accessibilityState={{ disabled: saving }}
             style={[
@@ -370,7 +369,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   frame: { flex: 1, width: '100%', maxWidth: 402, alignSelf: 'center' },
   header: { minHeight: 98, paddingTop: Spacing.five, paddingBottom: Spacing.three },
-  headerBar: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingHorizontal: Spacing.four },
+  headerBar: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   backButton: {
     flexShrink: 0,
     width: 50,
@@ -391,11 +390,10 @@ const styles = StyleSheet.create({
   scroller: { flex: 1 },
   scrollerContent: {
     flexGrow: 1,
-    justifyContent: 'flex-end',
     paddingHorizontal: Spacing.four,
     paddingBottom: 40,
   },
-  contentAndActions: { width: '100%' },
+  contentAndActions: { width: '100%', flexGrow: 1, justifyContent: 'flex-end' },
   introSpacing: { gap: 150 },
   fontSpacing: { gap: 74 },
   stepSpacing: { gap: 80 },

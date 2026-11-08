@@ -41,6 +41,18 @@ test('step content and finish actions share one scroll region, with Back availab
   expect(finish).toHaveBeenCalledTimes(1);
 });
 
+test('largest-text step headers and Back stay inside the scroll region', () => {
+  render(<Setup finish={async () => {}} />);
+  fireEvent.press(screen.getByRole('button', { name: /^Continue/ }));
+  for (const [index, title] of ['Font Sizes', 'Motion Controls', 'Colour Themes'].entries()) {
+    const page = within(screen.UNSAFE_getByType(ScrollView));
+    expect(page.getByRole('header', { name: title })).toBeVisible();
+    expect(page.getByText(`Step ${index + 1} of 3`)).toBeVisible();
+    expect(page.getByRole('button', { name: 'Back' })).toBeEnabled();
+    if (index < 2) fireEvent.press(page.getByRole('button', { name: /^Continue/ }));
+  }
+});
+
 test('changing steps returns to the top, while changing a choice keeps the scroll position', () => {
   const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo').mockImplementation(() => {});
   render(<Setup finish={async () => {}} />);
