@@ -1,3 +1,5 @@
+import { Appearance } from "../settings/appearance";
+
 type LocalDate = string; // YYYY-MM-DD, a calendar day, not a UTC timestamp
 type Mood = 'verySad' | 'sad' | 'neutral' | 'happy' | 'veryHappy';
 type Flow = 'none' | 'veryLight' | 'light' | 'normal' | 'heavy' | 'veryHeavy';
@@ -24,3 +26,12 @@ interface HealthStore {
   getPeriodSetup(): Promise<PeriodSetup>; // missing → null answers, intro
   savePeriodSetup(value: PeriodSetup): Promise<void>;
 }
+export type SymptomPickerProps = {
+  label: string; options: { id: string; label: string }[];
+  value: string[] | null; onChange: (v: string[] | null) => void;
+  appearance: Appearance;
+};
+export type ReflectionInputProps = {
+  value: string; onChangeText: (text: string) => void;
+  onBlur: () => void; appearance: Appearance;
+};

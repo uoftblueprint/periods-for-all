@@ -1,3 +1,5 @@
+import { Appearance } from "@/features/settings/appearance";
+
 // Shared agreements. Discuss changes here before changing a screen's props.
 export type User = { id: string; email: string };
 export type Credentials = { email: string; password: string };
@@ -41,6 +43,8 @@ export type AppButtonProps = {
   onPress: () => void;
   disabled?: boolean;
   busy?: boolean;
+  selected?: boolean;
+  appearance?: Appearance;
 };
 export type TextFieldProps = {
   label: string;
@@ -52,4 +56,8 @@ export type TextFieldProps = {
   editable?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
+  maxLength?: number;
+  multiline?: boolean;
+  onBlur?: () => void;
+  appearance?: Appearance;
 };

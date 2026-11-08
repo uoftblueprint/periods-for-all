@@ -1,19 +1,19 @@
 import { TextField } from '@/components/text-field';
-import { useState } from 'react';
-import { Text } from 'react-native';
+import { ReflectionInputProps } from '@/features/health/contracts';
 
-export function ReflectionInput() {
-    const [value, setValue] = useState('');
+export function ReflectionInput({value, onChangeText, onBlur, appearance}: ReflectionInputProps) {
 
     return (
         <>
-            <Text> Daily Reflection </Text>
             <TextField
                 label="Daily Reflection"
                 value={value}
-                onChangeText={(text) => setValue(text)}
+                onChangeText={onChangeText}
                 error={undefined}
-                
+                maxLength={1000}
+                multiline={true}
+                onBlur={onBlur}
+                appearance={appearance}
             />
         </>
     )

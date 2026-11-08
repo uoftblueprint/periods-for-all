@@ -1,35 +1,30 @@
 import { AppButton } from '@/components/app-button';
-import { useState } from 'react';
-import { View, Text} from 'react-native';
+import { Text, View } from 'react-native';
+import type { SymptomPickerProps } from '@/features/health/contracts';
 
-
-
-export function SymptomPicker ({title, symptoms}: {title: string, symptoms: string[]}) {
-
-
-    return (
-        <>
-        <Text> {title} </Text>
-        
-        {symptoms.map((symptom) => (
-            handleSymptomCreation({ symptom })
-        ))}
-
-        </>
-    )
-}
-
-function handleSymptomCreation ( { symptom }: { symptom: string }) {
-    const [selected, setSelected] = useState(false);
+export function SymptomPicker({ label, options, value, onChange, appearance }: SymptomPickerProps) {
+    
+    function toggleSymptom(id: string) {
+        const current = value ?? [];
+        onChange(current.includes(id)
+            ? current.filter((selectedId) => selectedId !== id)
+            : [...current, id]);
+    }
 
     return (
-        <AppButton
-        label={symptom} 
-        onPress={() => 
-            setSelected(!selected)
-        } 
-        />
-    )
+        <View>
+            <Text style={{ color: appearance.colors.text, fontSize: 16 * appearance.fontScale }}>{label}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {options.map((option) => (
+                    <AppButton key={option.id} label={option.label}
+                        selected={value?.includes(option.id) ?? false}
+                        onPress={() => toggleSymptom(option.id)} appearance={appearance} />
+                ))}
+
+                <AppButton label="Clear answer" onPress={() => onChange(null)} appearance={appearance} />
+            </View>
+        </View>
+    );
 }
 
 export default SymptomPicker;
