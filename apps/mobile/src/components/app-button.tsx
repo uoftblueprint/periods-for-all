@@ -1,5 +1,6 @@
 import { Text, Pressable, View } from 'react-native';
 import { Colors, Spacing } from '../constants/theme';
+import type { Appearance } from '@/features/settings/appearance';
 import type { AppButtonProps } from '../foundation/contracts';
 
 /**
@@ -22,7 +23,9 @@ export function AppButton({ label, onPress, disabled = false, busy = false, sele
             accessibilityRole="button"
             accessibilityLabel={label}
             accessibilityState={{disabled: disabled || busy, busy, selected}}
+            aria-busy={busy}
             style={({ pressed }) => [{
+                backgroundColor: appearance?.colors.backgroundElement,
                 minHeight: 44,
                 minWidth: 44,
                 justifyContent: 'center',
