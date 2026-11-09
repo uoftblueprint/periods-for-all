@@ -3,6 +3,7 @@ import { router, Stack, usePathname } from 'expo-router';
 import { Text } from 'react-native';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
 import { createSessionAuth } from '@/features/auth/session-auth';
+import { HealthStoreProvider, loadHealthStore } from '@/features/health/health-routes';
 import { OnboardingGate } from '@/features/onboarding/onboarding-gate';
 import { OnboardingShell } from '@/features/onboarding/onboarding-shell';
 import { deviceCompletionStore } from '@/features/onboarding/device-completion-store';
@@ -45,26 +46,34 @@ function AuthRoutes({ session }: { session: ReturnType<typeof createSessionAuth>
   const onHomeReady = useCallback(() => router.replace('/home'), []);
   const matchesUser = auth.user?.id === identity.userId;
   const checking = auth.status === 'signedIn' && (identity.pending || !matchesUser);
+  // S3-08: health records belong to exactly this signed-in user; null when nobody is.
+  const healthUserId = auth.status === 'signedIn' && matchesUser ? auth.user?.id ?? null : null;
 
   useEffect(() => {
     if (previousStatus.current === 'signedIn' && auth.status === 'signedOut') router.replace('/login');
     previousStatus.current = auth.status;
   }, [auth.status]);
 
-  const navigator = <Stack screenOptions={{
-    headerTitle: 'Periods for All · Development',
-    animation: appearance.reduceMotion ? 'none' : 'default',
-    headerStyle: { backgroundColor: appearance.colors.background },
-    headerTintColor: appearance.colors.text,
-    headerTitleStyle: { fontSize: 18 * appearance.fontScale },
-    contentStyle: { backgroundColor: appearance.colors.background },
-  }}>
-    <Stack.Screen name="login" />
-    <Stack.Screen name="display-setup-preview" options={{ headerShown: false }} />
-    <Stack.Protected guard={auth.status === 'signedIn' && matchesUser}>
-      <Stack.Screen name="home" />
-    </Stack.Protected>
-  </Stack>;
+  const navigator = <HealthStoreProvider userId={healthUserId} createStore={loadHealthStore}>
+    <Stack screenOptions={{
+      headerTitle: 'Periods for All · Development',
+      animation: appearance.reduceMotion ? 'none' : 'default',
+      headerStyle: { backgroundColor: appearance.colors.background },
+      headerTintColor: appearance.colors.text,
+      headerTitleStyle: { fontSize: 18 * appearance.fontScale },
+      contentStyle: { backgroundColor: appearance.colors.background },
+    }}>
+      <Stack.Screen name="login" />
+      <Stack.Screen name="display-setup-preview" options={{ headerShown: false }} />
+      <Stack.Protected guard={auth.status === 'signedIn' && matchesUser}>
+        <Stack.Screen name="home" />
+        {/* S3-08: real health routes, signed-in users only. */}
+        <Stack.Screen name="calendar" />
+        <Stack.Screen name="period-edit" />
+        <Stack.Screen name="daily-log" />
+      </Stack.Protected>
+    </Stack>
+  </HealthStoreProvider>;
 
   return <OnboardingGate
     auth={checking ? { ...auth, status: 'checking' } : auth}
