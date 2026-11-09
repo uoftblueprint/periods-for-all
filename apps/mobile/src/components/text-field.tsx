@@ -19,7 +19,7 @@ import { Colors, Fonts, Spacing } from '../constants/theme';
  * @TextfieldProps appearance - The appearance of the input field.
  */
 export function TextField({
-    label, value, onChangeText, error, secureTextEntry, keyboardType, editable, maxLength, multiline, onBlur,
+    label, value, onChangeText, error, secureTextEntry, keyboardType, editable, maxLength, multiline, onBlur, placeholder,
     autoCorrect = keyboardType === 'email-address' || secureTextEntry ? false : true,
     autoCapitalize = keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences',
     appearance,
@@ -48,7 +48,7 @@ export function TextField({
                 padding: Spacing.one,
                 borderRadius: 4,
             }}
-                placeholder={`Enter ${label.toLowerCase()}`}
+                placeholder={placeholder || `Enter ${label.toLowerCase()}`}
                 placeholderTextColor={colors.textSecondary}
                 onChangeText={onChangeText}
                 autoCorrect={autoCorrect}

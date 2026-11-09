@@ -14,6 +14,7 @@ export function ReflectionInput({value, onChangeText, onBlur, appearance}: Refle
                 multiline={true}
                 onBlur={onBlur}
                 appearance={appearance}
+                placeholder="How was today?"
             />
         </>
     )

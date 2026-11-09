@@ -14,30 +14,30 @@ export function SymptomsPreview() {
     
     return (
         <>
-        <Text> Symptoms Preview </Text>
+            <Text> Symptoms Preview </Text>
 
-        <SymptomPicker
-            label={"Physical Symptoms"}
-            options={[{ id: '1', label: 'Headache' }, { id: '2', label: 'Menstrual Cramps' }, {'id': '3', label: 'Back Pain'}, {'id': '4', label: 'Migraines'}, {'id': '5', label: 'Stomach Pain'}]}
-            value={physicalSymptoms}
-            onChange={setPhysicalSymptoms}
-            appearance={appearance}
-        ></SymptomPicker>
+            <SymptomPicker
+                label={"Physical Symptoms"}
+                options={[{ id: 'headache', label: 'Headache' }, { id: 'menstrualCramps', label: 'Menstrual Cramps' }, {'id': 'backPain', label: 'Back Pain'}, {'id': 'migraines', label: 'Migraines'}, {'id': 'stomachPain', label: 'Stomach Pain'}]}
+                value={physicalSymptoms}
+                onChange={setPhysicalSymptoms}
+                appearance={appearance}
+            ></SymptomPicker>
+    
+            <SymptomPicker 
+                label="Emotional Symptoms"
+                options={[{ id: 'moodSwings', label: 'Mood Swings' }, { id: 'lowMotivation', label: 'Low Motivation' }, {'id': 'difficultyConcentrating', label: 'Difficulty Concentrating'}, {'id': 'anxiety', label: 'Anxiety'}, {'id': 'fatigue', label: 'Fatigue'}]}
+                value={emotionalSymptoms}
+                onChange={setEmotionalSymptoms}
+                appearance={appearance}
+            ></SymptomPicker>
 
-        <SymptomPicker 
-            label="Emotional Symptoms"
-            options={[{ id: '6', label: 'Mood Swings' }, { id: '7', label: 'Low Motivation' }, {'id': '8', label: 'Difficulty Concentrating'}, {'id': '9', label: 'Anxiety'}, {'id': '10', label: 'Fatigue'}]}
-            value={emotionalSymptoms}
-            onChange={setEmotionalSymptoms}
-            appearance={appearance}
-        ></SymptomPicker>
-
-        <ReflectionInput 
-            value={text}
-            onChangeText={(text) => setText(text)}
-            onBlur={() => console.log('Reflection input blurred')}
-            appearance={appearance}
-        />
+            <ReflectionInput 
+                value={text}
+                onChangeText={(text) => setText(text)}
+                onBlur={() => console.log('Reflection input blurred')}
+                appearance={appearance}
+            />
         </>
     )
 }

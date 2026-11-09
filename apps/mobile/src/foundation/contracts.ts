@@ -1,4 +1,4 @@
-import { Appearance } from "@/features/settings/appearance";
+import type { Appearance } from "@/features/settings/appearance";
 
 // Shared agreements. Discuss changes here before changing a screen's props.
 export type User = { id: string; email: string };
@@ -60,4 +60,5 @@ export type TextFieldProps = {
   multiline?: boolean;
   onBlur?: () => void;
   appearance?: Appearance;
+  placeholder?: string;
 };

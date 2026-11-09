@@ -4,11 +4,12 @@ import type { SymptomPickerProps } from '@/features/health/contracts';
 
 export function SymptomPicker({ label, options, value, onChange, appearance }: SymptomPickerProps) {
     
-    function toggleSymptom(id: string) {
-        const current = value ?? [];
-        onChange(current.includes(id)
-            ? current.filter((selectedId) => selectedId !== id)
-            : [...current, id]);
+    function toggleSymptom(symptomId: string) {
+        if (value?.includes(symptomId)) {
+            onChange(value.filter((id) => id !== symptomId));
+        } else {
+            onChange([...(value ?? []), symptomId]);
+        }
     }
 
     return (
@@ -21,6 +22,7 @@ export function SymptomPicker({ label, options, value, onChange, appearance }: S
                         onPress={() => toggleSymptom(option.id)} appearance={appearance} />
                 ))}
 
+                <AppButton label="No symptoms" onPress={() => onChange([])} appearance={appearance} selected={value?.length === 0} />
                 <AppButton label="Clear answer" onPress={() => onChange(null)} appearance={appearance} />
             </View>
         </View>

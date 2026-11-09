@@ -1,4 +1,4 @@
-import { Appearance } from "../settings/appearance";
+import type { Appearance } from "../settings/appearance";
 
 type LocalDate = string; // YYYY-MM-DD, a calendar day, not a UTC timestamp
 type Mood = 'verySad' | 'sad' | 'neutral' | 'happy' | 'veryHappy';
