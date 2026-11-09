@@ -1,8 +1,7 @@
-
 BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(18);
+SELECT plan(13);
 
 -- Create two synthetic users.
 -- These exist only for the duration of this transaction.
@@ -11,85 +10,40 @@ VALUES
   ('11111111-1111-4111-8111-111111111111', 'rls-a@example.test'),
   ('22222222-2222-4222-8222-222222222222', 'rls-b@example.test');
 
--- Simulate User B (authenticated).
+-- Simulate User A (authenticated) and seed one row per table.
 SET LOCAL ROLE authenticated;
-SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
-
--- Test 1: B cannot create a setup row belonging to A.
--- This runs before A creates their setup row,
--- avoiding a primary-key conflict.
-SELECT throws_ok(
-  $$INSERT INTO public.period_setup (user_id)
-    VALUES ('11111111-1111-4111-8111-111111111111')$$,
-  '42501', NULL,
-  'B cannot insert setup for A'
-);
-
--- Switch to User A.
 SET LOCAL request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 
--- Tests 2-4: A can insert their own records.
-SELECT results_eq(
-  $$INSERT INTO public.period_days (user_id, date)
-    VALUES ('11111111-1111-4111-8111-111111111111', '2026-11-01')
-    RETURNING user_id$$,
-  ARRAY['11111111-1111-4111-8111-111111111111'::uuid],
-  'A can insert period day'
-);
+INSERT INTO public.period_days (user_id, date)
+VALUES ('11111111-1111-4111-8111-111111111111', '2026-11-01');
 
-SELECT results_eq(
-  $$INSERT INTO public.daily_logs (user_id, date, mood, flow)
-    VALUES ('11111111-1111-4111-8111-111111111111',
-            '2026-11-01', 'happy', 'none')
-    RETURNING user_id$$,
-  ARRAY['11111111-1111-4111-8111-111111111111'::uuid],
-  'A can insert daily log'
-);
+INSERT INTO public.daily_logs (user_id, date, mood, flow)
+VALUES ('11111111-1111-4111-8111-111111111111', '2026-11-01', 'happy', 'none');
 
-SELECT results_eq(
-  $$INSERT INTO public.period_setup (user_id, cycle_length)
-    VALUES ('11111111-1111-4111-8111-111111111111', 28)
-    RETURNING user_id$$,
-  ARRAY['11111111-1111-4111-8111-111111111111'::uuid],
-  'A can insert period setup'
-);
+INSERT INTO public.period_setup (user_id, cycle_length)
+VALUES ('11111111-1111-4111-8111-111111111111', 28);
 
--- Tests 5-7: A can read their own records.
+-- Test 1: A can read their own rows, so the empty results below are meaningful.
 SELECT results_eq(
-  'SELECT count(*) FROM public.period_days',
-  ARRAY[1::bigint], 'A can read period day'
-);
-
-SELECT results_eq(
-  'SELECT count(*) FROM public.daily_logs',
-  ARRAY[1::bigint], 'A can read daily log'
-);
-
-SELECT results_eq(
-  'SELECT count(*) FROM public.period_setup',
-  ARRAY[1::bigint], 'A can read period setup'
+  $$SELECT (SELECT count(*) FROM public.period_days)
+         + (SELECT count(*) FROM public.daily_logs)
+         + (SELECT count(*) FROM public.period_setup)$$,
+  ARRAY[3::bigint],
+  'A can read their own rows'
 );
 
 -- Switch to User B.
 SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
 
--- Tests 8-10: B cannot read A's records.
+-- Test 2: B cannot read A's rows.
 SELECT is_empty(
-  'SELECT * FROM public.period_days',
-  'B cannot read A period days'
+  $$SELECT user_id FROM public.period_days
+    UNION ALL SELECT user_id FROM public.daily_logs
+    UNION ALL SELECT user_id FROM public.period_setup$$,
+  'B cannot read A rows'
 );
 
-SELECT is_empty(
-  'SELECT * FROM public.daily_logs',
-  'B cannot read A daily logs'
-);
-
-SELECT is_empty(
-  'SELECT * FROM public.period_setup',
-  'B cannot read A period setup'
-);
-
--- Tests 11-13: B cannot update A's records.
+-- Tests 3-5: B cannot update A's rows.
 SELECT is_empty(
   $$UPDATE public.period_days SET date = '2026-11-02'
     WHERE user_id = '11111111-1111-4111-8111-111111111111'
@@ -111,7 +65,7 @@ SELECT is_empty(
   'B cannot update A period setup'
 );
 
--- Tests 14-16: B cannot delete A's records.
+-- Tests 6-8: B cannot delete A's rows.
 SELECT is_empty(
   $$DELETE FROM public.period_days
     WHERE user_id = '11111111-1111-4111-8111-111111111111'
@@ -133,7 +87,7 @@ SELECT is_empty(
   'B cannot delete A period setup'
 );
 
--- Tests 17-18: B cannot forge A's user_id on INSERT.
+-- Tests 9-11: B cannot insert rows with A's forged user ID.
 SELECT throws_ok(
   $$INSERT INTO public.period_days (user_id, date)
     VALUES ('11111111-1111-4111-8111-111111111111', '2026-11-03')$$,
@@ -146,6 +100,30 @@ SELECT throws_ok(
     VALUES ('11111111-1111-4111-8111-111111111111', '2026-11-03')$$,
   '42501', NULL,
   'B cannot insert A daily log'
+);
+
+SELECT throws_ok(
+  $$INSERT INTO public.period_setup (user_id)
+    VALUES ('11111111-1111-4111-8111-111111111111')$$,
+  '42501', NULL,
+  'B cannot insert A period setup'
+);
+
+-- Tests 12-13: signed-out access is denied.
+SET LOCAL ROLE anon;
+
+SELECT is_empty(
+  $$SELECT user_id FROM public.period_days
+    UNION ALL SELECT user_id FROM public.daily_logs
+    UNION ALL SELECT user_id FROM public.period_setup$$,
+  'Signed-out users cannot read any rows'
+);
+
+SELECT throws_ok(
+  $$INSERT INTO public.period_days (user_id, date)
+    VALUES ('11111111-1111-4111-8111-111111111111', '2026-11-04')$$,
+  '42501', NULL,
+  'Signed-out users cannot insert rows'
 );
 
 SELECT * FROM finish();
