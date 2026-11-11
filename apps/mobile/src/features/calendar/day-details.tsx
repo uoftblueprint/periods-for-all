@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useFonts } from 'expo-font';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from '@expo-google-fonts/atkinson-hyperlegible';
+import { Colors, Fonts, OnboardingFonts, Spacing } from '@/constants/theme';
 import type { DailyLog, Flow, Mood } from '@/features/health/contracts';
 import {
   EMOTIONAL_SYMPTOM_OPTIONS, FLOW_OPTIONS, MOOD_OPTIONS, PHYSICAL_SYMPTOM_OPTIONS,
@@ -54,8 +55,8 @@ const symptomImages = new Map<string, number>([
 
 export function DayDetails({ log, isPeriodDay, today, appearance, onEdit, onClose }: DayDetailsProps) {
   const [fontLoaded] = useFonts({
-    Atkinson: require('@/assets/fonts/AtkinsonHyperlegible-Regular.ttf'),
-    AtkinsonBold: require('@/assets/fonts/AtkinsonHyperlegible-Bold.ttf'),
+    AtkinsonHyperlegible_400Regular,
+    AtkinsonHyperlegible_700Bold,
   });
   const [expanded, setExpanded] = useState(false);
   const scroll = useRef<ScrollView>(null);
@@ -68,8 +69,8 @@ export function DayDetails({ log, isPeriodDay, today, appearance, onEdit, onClos
     : dark ? { fill: colors.backgroundElement, ink: colors.text, border: colors.backgroundSelected }
     : { fill: '#f2eade', ink: '#31281b', border: '#e4d7c4' };
   const action = contrast ? { fill: colors.text, ink: colors.background } : { fill: '#a90d02', ink: '#fff' };
-  const text = { color: colors.text, fontFamily: fontLoaded ? 'Atkinson' : Fonts.sans, fontSize: 16 * fontScale };
-  const bold = { fontFamily: fontLoaded ? 'AtkinsonBold' : Fonts.sans, fontWeight: '700' as const };
+  const text = { color: colors.text, fontFamily: fontLoaded ? OnboardingFonts.regular : Fonts.sans, fontSize: 16 * fontScale };
+  const bold = { fontFamily: fontLoaded ? OnboardingFonts.bold : Fonts.sans, fontWeight: '700' as const };
   const date = parseDate(log.date);
   const answered = [log.mood, log.flow, log.physicalSymptoms, log.emotionalSymptoms, log.reflection]
     .some((value) => value !== null);
