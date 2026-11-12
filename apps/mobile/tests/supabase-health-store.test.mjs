@@ -100,7 +100,11 @@ test('updatePeriodDays sends the whole change in one database call', async () =>
   await store.updatePeriodDays({ add: ['2026-10-02'], remove: ['2026-10-01'] });
 
   assert.deepEqual(calls, [
-    ['rpc', 'update_period_days', { p_add: ['2026-10-02'], p_remove: ['2026-10-01'] }],
+    [
+      'rpc',
+      'update_period_days',
+      { p_add: ['2026-10-02'], p_remove: ['2026-10-01'], p_expected_user_id: 'user-a' },
+    ],
   ]);
 });
 

@@ -1,7 +1,7 @@
 BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(10);
+SELECT plan(12);
 
 -- Create two synthetic users.
 -- These exist only for the duration of this transaction.
@@ -43,7 +43,8 @@ VALUES ('11111111-1111-4111-8111-111111111111', '2026-10-01', 'happy');
 -- Tests 1-3: only the requested days change, and daily logs are kept.
 SELECT lives_ok(
   $$SELECT public.update_period_days(
-      ARRAY['2026-10-03']::date[], ARRAY['2026-10-01']::date[])$$,
+      ARRAY['2026-10-03']::date[], ARRAY['2026-10-01']::date[],
+      '11111111-1111-4111-8111-111111111111')$$,
   'A can add and remove days together'
 );
 
@@ -62,13 +63,15 @@ SELECT results_eq(
 -- Tests 4-5: invalid changes are rejected.
 SELECT throws_ok(
   $$SELECT public.update_period_days(
-      ARRAY['2026-10-05']::date[], ARRAY['2026-10-05']::date[])$$,
+      ARRAY['2026-10-05']::date[], ARRAY['2026-10-05']::date[],
+      '11111111-1111-4111-8111-111111111111')$$,
   'P0001', 'Contradictory date changes',
   'A date cannot be both added and removed'
 );
 
 SELECT throws_ok(
-  $$SELECT public.update_period_days(ARRAY[current_date + 2], '{}')$$,
+  $$SELECT public.update_period_days(ARRAY[current_date + 2], '{}',
+      '11111111-1111-4111-8111-111111111111')$$,
   'P0001', 'Period days cannot be in the future',
   'A future day is rejected'
 );
@@ -79,7 +82,8 @@ VALUES ('11111111-1111-4111-8111-111111111111', '2020-01-15');
 
 SELECT throws_ok(
   $$SELECT public.update_period_days(
-      ARRAY['2026-10-10']::date[], ARRAY['2020-01-15']::date[])$$,
+      ARRAY['2026-10-10']::date[], ARRAY['2020-01-15']::date[],
+      '11111111-1111-4111-8111-111111111111')$$,
   'P0001', 'forced failure',
   'A failure while deleting fails the whole call'
 );
@@ -93,7 +97,8 @@ SELECT is_empty(
 SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
 
 SELECT lives_ok(
-  $$SELECT public.update_period_days('{}', ARRAY['2026-10-02']::date[])$$,
+  $$SELECT public.update_period_days('{}', ARRAY['2026-10-02']::date[],
+      '22222222-2222-4222-8222-222222222222')$$,
   'B removing a date B does not have is a no-op'
 );
 
@@ -104,11 +109,33 @@ SELECT isnt_empty(
   'A still has the day B tried to remove'
 );
 
--- Test 10: signed-out callers have no execute permission.
+-- Tests 10-11: a leftover call from A's store is rejected once B is signed in (PR #88 review).
+SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+
+INSERT INTO public.period_days (user_id, date)
+VALUES ('22222222-2222-4222-8222-222222222222', '2026-10-20');
+
+SELECT throws_ok(
+  $$SELECT public.update_period_days(
+      ARRAY['2026-10-21']::date[], ARRAY['2026-10-20']::date[],
+      '11111111-1111-4111-8111-111111111111')$$,
+  '42501', 'user mismatch: call was made for a different user',
+  'A call made for A is rejected while B is signed in'
+);
+
+SELECT results_eq(
+  $$SELECT date FROM public.period_days
+    WHERE user_id = '22222222-2222-4222-8222-222222222222' ORDER BY date$$,
+  ARRAY['2026-10-20']::date[],
+  'B''s period days are unchanged by the call made for A'
+);
+
+-- Test 12: signed-out callers have no execute permission.
 SET LOCAL ROLE anon;
 
 SELECT throws_ok(
-  $$SELECT public.update_period_days(ARRAY['2026-10-06']::date[], '{}')$$,
+  $$SELECT public.update_period_days(ARRAY['2026-10-06']::date[], '{}',
+      '11111111-1111-4111-8111-111111111111')$$,
   '42501', NULL,
   'Signed-out callers cannot run the function'
 );

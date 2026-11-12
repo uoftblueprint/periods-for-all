@@ -1,7 +1,8 @@
 
 CREATE FUNCTION public.update_period_days(
     p_add DATE[],
-    p_remove DATE[]
+    p_remove DATE[],
+    p_expected_user_id UUID
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -11,6 +12,11 @@ AS $$
 DECLARE
     current_user_id UUID := (SELECT auth.uid());
 BEGIN
+    if p_expected_user_id is distinct from auth.uid() then
+      raise exception 'user mismatch: call was made for a different user'
+        using errcode = '42501';
+    end if;
+
     -- Require an authenticated user
     IF current_user_id IS NULL THEN
         RAISE EXCEPTION 'Authentication required';
@@ -57,8 +63,8 @@ END;
 $$;
 
 -- Only authenticated users may call this function
-REVOKE ALL ON FUNCTION public.update_period_days(DATE[], DATE[])
+REVOKE ALL ON FUNCTION public.update_period_days(DATE[], DATE[], UUID)
 FROM PUBLIC, anon;
 
-GRANT EXECUTE ON FUNCTION public.update_period_days(DATE[], DATE[])
+GRANT EXECUTE ON FUNCTION public.update_period_days(DATE[], DATE[], UUID)
 TO authenticated;

@@ -121,7 +121,11 @@ export function createSupabaseHealthStore(client: SupabaseClient, userId: string
 
     async updatePeriodDays({ add, remove }) {
       // One database call, so the whole change saves or none of it does.
-      const { error } = await client.rpc('update_period_days', { p_add: add, p_remove: remove });
+      const { error } = await client.rpc('update_period_days', {
+        p_add: add,
+        p_remove: remove,
+        p_expected_user_id: userId,
+      });
       if (error) throw new Error(SAVE_DATES_ERROR);
     },
 
