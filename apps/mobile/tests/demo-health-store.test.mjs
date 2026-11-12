@@ -62,6 +62,19 @@ test('patches change only provided fields', async () => {
   assert.deepEqual(updated, { ...before, mood: 'sad' });
 });
 
+test('undefined patch fields preserve answers while explicit null clears them', async () => {
+  const store = createDemoHealthStore({ today: TODAY });
+  const before = await store.getDailyLog(DEMO_FILLED_DATE);
+  const fields = ['mood', 'flow', 'physicalSymptoms', 'emotionalSymptoms', 'reflection'];
+  const undefinedPatch = Object.fromEntries(fields.map((field) => [field, undefined]));
+  assert.deepEqual(await store.patchDailyLog(DEMO_FILLED_DATE, undefinedPatch), before);
+  assert.deepEqual(await store.getDailyLog(DEMO_FILLED_DATE), before);
+  const nullPatch = Object.fromEntries(fields.map((field) => [field, null]));
+  assert.deepEqual(await store.patchDailyLog(DEMO_FILLED_DATE, nullPatch), {
+    date: DEMO_FILLED_DATE, ...nullPatch,
+  });
+});
+
 test('explicit none and empty symptoms stay distinct from unanswered fields', async () => {
   const store = createEmptyStore();
 

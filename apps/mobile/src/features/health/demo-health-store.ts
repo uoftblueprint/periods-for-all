@@ -210,23 +210,23 @@ export function createDemoHealthStore(
 }
 
 function applyDailyLogPatch(log: DailyLog, patch: DailyLogPatch): void {
-  if (Object.prototype.hasOwnProperty.call(patch, 'mood')) {
+  if (patch.mood !== undefined) {
     log.mood = patch.mood ?? null;
   }
-  if (Object.prototype.hasOwnProperty.call(patch, 'flow')) {
+  if (patch.flow !== undefined) {
     log.flow = patch.flow ?? null;
   }
-  if (Object.prototype.hasOwnProperty.call(patch, 'physicalSymptoms')) {
+  if (patch.physicalSymptoms !== undefined) {
     log.physicalSymptoms = patch.physicalSymptoms
       ? [...patch.physicalSymptoms]
       : null;
   }
-  if (Object.prototype.hasOwnProperty.call(patch, 'emotionalSymptoms')) {
+  if (patch.emotionalSymptoms !== undefined) {
     log.emotionalSymptoms = patch.emotionalSymptoms
       ? [...patch.emotionalSymptoms]
       : null;
   }
-  if (Object.prototype.hasOwnProperty.call(patch, 'reflection')) {
+  if (patch.reflection !== undefined) {
     const reflection = patch.reflection;
     log.reflection = reflection == null || reflection.trim() === ''
       ? null
