@@ -185,6 +185,52 @@ test('period setup defaults to intro and can be saved', async () => {
   });
 });
 
+test('invalid daily answers reject atomically on writes and seeds', async () => {
+  const store = createDemoHealthStore({ today: TODAY });
+  const before = await store.getDailyLog(DEMO_FILLED_DATE);
+  for (const patch of [
+    { mood: 'angry' }, { flow: 'medium' },
+    { physicalSymptoms: ['madeUp'] }, { emotionalSymptoms: ['madeUp'] },
+    { physicalSymptoms: ['fatigue'] }, { emotionalSymptoms: ['headache'] },
+    { physicalSymptoms: [null] }, { emotionalSymptoms: [undefined] },
+    { physicalSymptoms: 'headache' }, { reflection: 123 },
+  ]) {
+    await assert.rejects(store.patchDailyLog(DEMO_FILLED_DATE, {
+      reflection: 'Should not be saved', ...patch,
+    }), /Invalid/);
+    assert.deepEqual(await store.getDailyLog(DEMO_FILLED_DATE), before);
+    assert.throws(() => createEmptyStore({ initialDailyLogs: [{ ...before, ...patch }] }), /Invalid/);
+  }
+});
+
+test('invalid setup answers reject atomically on writes and seeds', async () => {
+  const store = createDemoHealthStore({ today: TODAY });
+  const before = await store.getPeriodSetup();
+  for (const patch of [
+    { cycleLength: 20 }, { cycleLength: 46 }, { cycleLength: 99 },
+    { cycleLength: 28.5 }, { cycleLength: NaN }, { cycleLength: '28' },
+    { periodLength: 0 }, { periodLength: 13 }, { periodLength: 5.5 },
+    { periodLength: Infinity }, { step: 'oops' }, { step: null },
+    { lastPeriodStart: '' },
+  ]) {
+    const value = { ...before, ...patch };
+    await assert.rejects(store.savePeriodSetup(value));
+    assert.deepEqual(await store.getPeriodSetup(), before);
+    assert.throws(() => createEmptyStore({ initialPeriodSetup: value }));
+  }
+});
+
+test('setup boundaries, unanswered lengths and all setup steps are accepted', async () => {
+  const store = createEmptyStore();
+  for (const [cycleLength, periodLength] of [[21, 1], [45, 12], [null, null]]) {
+    for (const step of ['intro', 'lastPeriod', 'cycle', 'length', 'complete']) {
+      const setup = { lastPeriodStart: null, cycleLength, periodLength, step };
+      await store.savePeriodSetup(setup);
+      assert.deepEqual(await store.getPeriodSetup(), setup);
+    }
+  }
+});
+
 test('invalid dates and reversed read ranges are rejected', async () => {
   const store = createEmptyStore();
 

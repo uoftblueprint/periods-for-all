@@ -1,4 +1,7 @@
 import { formatDate, parseDate } from '@/features/calendar/calendar-dates';
+import {
+  MOOD_OPTIONS, FLOW_OPTIONS, PHYSICAL_SYMPTOM_OPTIONS, EMOTIONAL_SYMPTOM_OPTIONS,
+} from '@/features/health/catalog';
 
 import type {
   DailyLog,
@@ -95,6 +98,46 @@ function emptyDailyLog(date: LocalDate): DailyLog {
   };
 }
 
+const MOODS = new Set<string>(MOOD_OPTIONS.map(({ id }) => id));
+const FLOWS = new Set<string>(FLOW_OPTIONS.map(({ id }) => id));
+const PHYSICAL_SYMPTOMS = new Set<string>(PHYSICAL_SYMPTOM_OPTIONS.map(({ id }) => id));
+const EMOTIONAL_SYMPTOMS = new Set<string>(EMOTIONAL_SYMPTOM_OPTIONS.map(({ id }) => id));
+const SETUP_STEPS = new Set<PeriodSetup['step']>([
+  'intro', 'lastPeriod', 'cycle', 'length', 'complete',
+]);
+
+function assertDailyLogValues(log: DailyLog): void {
+  if (log.mood !== null && !MOODS.has(log.mood)) throw new Error('Invalid mood.');
+  if (log.flow !== null && !FLOWS.has(log.flow)) throw new Error('Invalid flow.');
+  for (const [name, values, allowed] of [
+    ['physical symptoms', log.physicalSymptoms, PHYSICAL_SYMPTOMS],
+    ['emotional symptoms', log.emotionalSymptoms, EMOTIONAL_SYMPTOMS],
+  ] as const) {
+    if (values !== null && (!Array.isArray(values)
+      || !Array.from(values).every((value) => allowed.has(value)))) {
+      throw new Error(`Invalid ${name}.`);
+    }
+  }
+  if (log.reflection !== null && typeof log.reflection !== 'string') {
+    throw new Error('Invalid reflection.');
+  }
+}
+
+function assertPeriodSetup(value: PeriodSetup, today: LocalDate): void {
+  if (value.lastPeriodStart !== null) {
+    assertRecordedDate(value.lastPeriodStart, today, 'last period start');
+  }
+  for (const [name, length, min, max] of [
+    ['cycle length', value.cycleLength, 21, 45],
+    ['period length', value.periodLength, 1, 12],
+  ] as const) {
+    if (length !== null && (!Number.isInteger(length) || length < min || length > max)) {
+      throw new Error(`${name} must be an integer between ${min} and ${max}.`);
+    }
+  }
+  if (!SETUP_STEPS.has(value.step)) throw new Error('Invalid setup step.');
+}
+
 function cloneDailyLog(log: DailyLog): DailyLog {
   return {
     ...log,
@@ -132,15 +175,14 @@ export function createDemoHealthStore(
   const dailyLogs = new Map<LocalDate, DailyLog>();
   for (const log of seededDailyLogs) {
     assertRecordedDate(log.date, today, 'daily log date');
+    assertDailyLogValues(log);
     dailyLogs.set(log.date, cloneDailyLog(log));
   }
 
   let periodSetup = seededPeriodSetup
     ? clonePeriodSetup(seededPeriodSetup)
     : null;
-  if (periodSetup?.lastPeriodStart) {
-    assertRecordedDate(periodSetup.lastPeriodStart, today, 'last period start');
-  }
+  if (periodSetup) assertPeriodSetup(periodSetup, today);
 
   function failRead(): void {
     if (options.readError) throw options.readError;
@@ -189,6 +231,10 @@ export function createDemoHealthStore(
       assertRecordedDate(date, today, 'daily log date');
 
       const next = cloneDailyLog(dailyLogs.get(date) ?? emptyDailyLog(date));
+      const supplied = Object.fromEntries(
+        Object.entries(patch).filter(([, value]) => value !== undefined),
+      );
+      assertDailyLogValues({ ...next, ...supplied });
       applyDailyLogPatch(next, patch);
       dailyLogs.set(date, cloneDailyLog(next));
       return cloneDailyLog(next);
@@ -201,9 +247,7 @@ export function createDemoHealthStore(
 
     async savePeriodSetup(value) {
       failWrite();
-      if (value.lastPeriodStart) {
-        assertRecordedDate(value.lastPeriodStart, today, 'last period start');
-      }
+      assertPeriodSetup(value, today);
       periodSetup = clonePeriodSetup(value);
     },
   };
