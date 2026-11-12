@@ -85,6 +85,39 @@ than labels so wording can change without migrating saved data.
 UI code may use the catalog-derived symptom ID types for its controls. The
 shared `DailyLog` contract intentionally keeps symptom values as `string[]`.
 
+## Demo store
+
+`createDemoHealthStore()` from `features/health/demo-health-store.ts` returns a
+fresh `HealthStore` backed only by in-memory, made-up data. Its default data
+includes `DEMO_EMPTY_DATE` and `DEMO_FILLED_DATE` so screens can show both
+states without Supabase or a finished route. Creating another store resets the
+samples; instances never share mutations.
+
+The factory accepts seed overrides for empty or custom scenarios. Pass
+`readError` or `writeError` to make all corresponding operations reject with a
+known error in a preview or test. Pass `today` when deterministic future-date
+validation is needed. These controls belong only to the demo factory and do
+not change the shared `HealthStore` interface.
+
+The returned `DemoHealthStore` also provides `failNextRead(error)` and
+`failNextWrite(error)` for Retry scenarios. Each fails only the next corresponding
+operation with that exact error, before changing data; retrying then succeeds.
+Calling a control again replaces its pending error. Reads and writes have
+independent pending errors, isolated to each store instance. One-shot errors take
+precedence over permanent errors; configured `readError`/`writeError` still apply
+afterward, so omit those options when demonstrating successful retries.
+
+```ts
+const store = createDemoHealthStore();
+store.failNextWrite(new Error('Demo save failure'));
+// The first save rejects; retry the same save on this store to succeed.
+```
+
+Seeds and writes validate catalog IDs, setup steps, and integer setup lengths
+(cycle: 21–45, period: 1–12). Null answers remain valid. Undefined daily-log patch
+fields leave answers unchanged. Contradictory period-day changes reject before
+any dates are changed.
+
 ## File ownership
 
 | Area | Owner | Agreement |
