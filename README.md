@@ -8,12 +8,36 @@ Use Node 22.6 or newer (the `.nvmrc` selects Node 22). From the repository root:
 
 ```bash
 npm ci
-npm run web --workspace=mobile
+EXPO_NO_METRO_LAZY=1 npm run web --workspace=mobile
 ```
 
 Open the web address printed in the terminal (http://localhost:8081) in your browser. The starting page links to login,
 settings, home, and a component playground. **No Docker, Supabase account or environment
 variables are needed for these previews.** They use fake accounts and temporary state.
+
+### Browser startup workaround (Expo 57)
+
+The macOS/Linux command above disables Metro's lazy bundling for this launch. Without it,
+the browser preview can fail with `Worker chunk not found for: .../expo-sqlite/web/worker.ts`.
+This workaround was verified locally after clearing the cache alone did not fix the error.
+See the [related Expo issue](https://github.com/expo/expo/issues/50153).
+
+If Expo is already running, stop it with **Ctrl+C**, then restart from the repository root:
+
+```bash
+EXPO_NO_METRO_LAZY=1 npm run web --workspace=mobile -- --clear
+```
+
+On Windows PowerShell, set the variable before starting the preview:
+
+```powershell
+$env:EXPO_NO_METRO_LAZY = "1"
+npm run web --workspace=mobile -- --clear
+```
+
+Open the address printed in the terminal. Keep the variable set for browser development
+until an Expo update is verified to fix the issue without it. This does not change app code
+or saved data; the initial build may take longer. The `web` package script itself is unchanged.
 
 Read [the short developer guide](docs/START_HERE.md) for file ownership and interfaces.
 Real product behavior remains to be implemented. The preview routes are disabled in
