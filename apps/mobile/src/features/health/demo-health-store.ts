@@ -165,6 +165,11 @@ export function createDemoHealthStore(
     async updatePeriodDays(change) {
       failWrite();
 
+      const added = new Set(change.add);
+      if (change.remove.some((date) => added.has(date))) {
+        throw new Error('Contradictory date changes');
+      }
+
       for (const date of [...change.add, ...change.remove]) {
         assertRecordedDate(date, today, 'period day');
       }

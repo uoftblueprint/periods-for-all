@@ -135,6 +135,17 @@ test('period updates do not change symptoms, and flow patches do not change peri
   assert.deepEqual(await store.getPeriodDays(date, date), [date]);
 });
 
+test('contradictory period changes reject without applying any changes', async () => {
+  const store = createEmptyStore({ initialPeriodDays: ['2026-11-01', '2026-11-02'] });
+  await assert.rejects(store.updatePeriodDays({
+    add: ['2026-11-01', '2026-11-03'],
+    remove: ['2026-11-01', '2026-11-02'],
+  }), /Contradictory date changes/);
+  assert.deepEqual(await store.getPeriodDays('2026-11-01', TODAY), [
+    '2026-11-01', '2026-11-02',
+  ]);
+});
+
 test('period setup defaults to intro and can be saved', async () => {
   const store = createEmptyStore();
   assert.deepEqual(await store.getPeriodSetup(), {
