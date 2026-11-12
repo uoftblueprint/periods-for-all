@@ -66,6 +66,13 @@ export type DemoHealthStoreOptions = {
   writeError?: Error;
 };
 
+export interface DemoHealthStore extends HealthStore {
+  /** Replaces any pending one-shot read error; consumed by the next read. */
+  failNextRead(error: Error): void;
+  /** Replaces any pending one-shot write error; consumed before any mutation. */
+  failNextWrite(error: Error): void;
+}
+
 function localToday(): LocalDate {
   const now = new Date();
   return formatDate(
@@ -156,7 +163,7 @@ function clonePeriodSetup(value: PeriodSetup): PeriodSetup {
  */
 export function createDemoHealthStore(
   options: DemoHealthStoreOptions = {},
-): HealthStore {
+): DemoHealthStore {
   const today = options.today ?? localToday();
   assertValidDate(today, 'today');
 
@@ -184,15 +191,36 @@ export function createDemoHealthStore(
     : null;
   if (periodSetup) assertPeriodSetup(periodSetup, today);
 
+  let nextReadError: Error | undefined;
+  let nextWriteError: Error | undefined;
+
   function failRead(): void {
+    if (nextReadError) {
+      const error = nextReadError;
+      nextReadError = undefined;
+      throw error;
+    }
     if (options.readError) throw options.readError;
   }
 
   function failWrite(): void {
+    if (nextWriteError) {
+      const error = nextWriteError;
+      nextWriteError = undefined;
+      throw error;
+    }
     if (options.writeError) throw options.writeError;
   }
 
   return {
+    failNextRead(error) {
+      nextReadError = error;
+    },
+
+    failNextWrite(error) {
+      nextWriteError = error;
+    },
+
     async getPeriodDays(from, to) {
       failRead();
       assertValidDate(from, 'from');

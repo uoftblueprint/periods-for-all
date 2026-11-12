@@ -314,6 +314,73 @@ test('configured write failures reject without changing stored data', async () =
   assert.equal((await store.getPeriodSetup()).step, 'intro');
 });
 
+test('each read can fail once and then return the same data on retry', async () => {
+  const store = createDemoHealthStore({ today: TODAY });
+  for (const read of [
+    () => store.getDailyLog(DEMO_FILLED_DATE),
+    () => store.getPeriodDays(DEMO_EMPTY_DATE, DEMO_FILLED_DATE),
+    () => store.getPeriodSetup(),
+  ]) {
+    const before = await read();
+    const error = new Error('Read once');
+    store.failNextRead(error);
+    await assert.rejects(read(), (actual) => actual === error);
+    assert.deepEqual(await read(), before);
+  }
+});
+
+test('each write can fail without mutation and then succeed on retry', async () => {
+  const store = createEmptyStore();
+  const date = '2026-10-20';
+  const setup = { lastPeriodStart: date, cycleLength: 28, periodLength: 5, step: 'complete' };
+  for (const [write, read, expected] of [
+    [() => store.updatePeriodDays({ add: [date], remove: [] }),
+      () => store.getPeriodDays(date, date), [date]],
+    [() => store.patchDailyLog(date, { mood: 'happy' }),
+      async () => (await store.getDailyLog(date)).mood, 'happy'],
+    [() => store.savePeriodSetup(setup), () => store.getPeriodSetup(), setup],
+  ]) {
+    const before = await read();
+    const error = new Error('Write once');
+    store.failNextWrite(error);
+    await assert.rejects(write(), (actual) => actual === error);
+    assert.deepEqual(await read(), before);
+    await write();
+    assert.deepEqual(await read(), expected);
+  }
+});
+
+test('pending failures are independent across operation types and stores', async () => {
+  const first = createEmptyStore();
+  const second = createEmptyStore();
+  const readError = new Error('Read');
+  const writeError = new Error('Write');
+  first.failNextRead(new Error('Replaced'));
+  first.failNextRead(readError);
+  first.failNextWrite(writeError);
+  await second.getPeriodSetup();
+  await second.savePeriodSetup(await second.getPeriodSetup());
+  await assert.rejects(first.getPeriodSetup(), (error) => error === readError);
+  const setup = await first.getPeriodSetup();
+  await assert.rejects(first.savePeriodSetup(setup), (error) => error === writeError);
+  await first.savePeriodSetup(setup);
+});
+
+test('one-shot failures precede permanent failures without clearing them', async () => {
+  const permanent = new Error('Permanent');
+  const once = new Error('Once');
+  const store = createEmptyStore({ readError: permanent, writeError: permanent });
+  store.failNextRead(once);
+  store.failNextWrite(once);
+  for (const operation of [
+    () => store.getPeriodSetup(),
+    () => store.updatePeriodDays({ add: [], remove: [] }),
+  ]) {
+    await assert.rejects(operation(), (error) => error === once);
+    await assert.rejects(operation(), (error) => error === permanent);
+  }
+});
+
 test('separate demo stores do not share mutations', async () => {
   const first = createDemoHealthStore({ today: TODAY });
   const second = createDemoHealthStore({ today: TODAY });
