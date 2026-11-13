@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, type Href } from 'expo-router';
 import { Text } from 'react-native';
 import { PreviewScreen } from '@/foundation/preview-screen';
 
@@ -16,6 +16,7 @@ export default function StartScreen() {
       <Link href="/auth-preview">Open auth state preview</Link>
       <Link href="/theme-preview">Open Theme Selection Preview</Link>
       <Link href="/calendar-preview">Open calendar preview</Link>
+      <Link href={'/period-editor-preview' as Href}>Open period editor preview</Link>
     </PreviewScreen>
   );
 }
