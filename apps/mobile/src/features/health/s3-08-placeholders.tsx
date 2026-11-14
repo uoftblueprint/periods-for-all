@@ -161,6 +161,9 @@ export function PlaceholderPeriodDateEditor(props: PeriodDateEditorProps) {
 export type DailyLogScreenProps = {
   date: string; today: string; store: HealthStore; appearance: Appearance;
   onDateChange: (date: string) => void; onExit: () => void;
+  /** Optional. The screen hands the route a function that saves everything pending and resolves
+   *  false if anything is still unsaved; the route calls it before Back/swipe. Returns an unregister. */
+  registerExitGuard?: (guard: () => Promise<boolean>) => () => void;
 };
 
 /** Saves each choice immediately. The real screen (S3-06) adds the full controls, queueing and debounce. */

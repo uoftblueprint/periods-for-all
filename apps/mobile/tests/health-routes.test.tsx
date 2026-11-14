@@ -15,15 +15,26 @@ const mockCalendar = jest.fn((_props: any) => null);
 const mockDayDetails = jest.fn((_props: any) => null);
 const mockEditor = jest.fn((_props: any) => null);
 const mockLogScreen = jest.fn((_props: any) => null);
+const mockNavigation = { dispatch: jest.fn() };
+// What the daily log passed to usePreventRemove on its latest render.
+const mockBlocker: { enabled: boolean; onBlocked: ((event: any) => void) | null } = { enabled: false, onBlocked: null };
 
 jest.mock('expo-router', () => ({
   // A getter, because jest.mock runs before `mockRouter` above is created.
   get router() { return mockRouter; },
   useLocalSearchParams: () => mockParams,
+  useNavigation: () => mockNavigation,
   // Runs on mount like a first focus; tests call mockFocus.current() to simulate returning.
   useFocusEffect: (callback: () => void) => {
     const React = require('react');
     React.useEffect(() => { mockFocus.current = callback; callback(); }, [callback]);
+  },
+}));
+// Header Back and swipe back both arrive here; tests call mockBlocker.onBlocked to simulate them.
+jest.mock('expo-router/react-navigation', () => ({
+  usePreventRemove: (enabled: boolean, onBlocked: (event: any) => void) => {
+    mockBlocker.enabled = enabled;
+    mockBlocker.onBlocked = onBlocked;
   },
 }));
 jest.mock('@/features/settings/settings-provider', () => ({
@@ -74,6 +85,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockParams = {};
   mockFocus.current = null;
+  mockBlocker.enabled = false;
+  mockBlocker.onBlocked = null;
   mockRouter.canGoBack.mockImplementation(() => true);
 });
 
@@ -217,4 +230,64 @@ test.each(['2026-11-16', '2026-02-30', 'not-a-date', ''])('daily log refuses %j 
   renderWithStore(<DailyLogRoute />, fakeStore());
   expect(await screen.findByText('This day can’t be logged.')).toBeTruthy();
   expect(mockLogScreen).not.toHaveBeenCalled();
+});
+
+// ---- Leaving the daily log (header Back / swipe back) ----
+const goBack = { type: 'GO_BACK' };
+const swipeBack = () => act(() => { mockBlocker.onBlocked!({ data: { action: goBack } }); });
+
+async function openDailyLog(guard?: () => Promise<boolean>) {
+  mockParams = { date: '2026-11-10' };
+  renderWithStore(<DailyLogRoute />, fakeStore());
+  await waitFor(() => expect(mockLogScreen).toHaveBeenCalled());
+  if (guard) act(() => { lastProps(mockLogScreen).registerExitGuard(guard); });
+}
+
+test('back waits for pending saves, then leaves', async () => {
+  const save = deferred<boolean>();
+  const guard = jest.fn(() => save.promise);
+  await openDailyLog(guard);
+  expect(mockBlocker.enabled).toBe(true);
+
+  swipeBack();
+  expect(guard).toHaveBeenCalledTimes(1);
+  swipeBack(); // a second swipe while saving doesn't save twice
+  expect(guard).toHaveBeenCalledTimes(1);
+  expect(mockNavigation.dispatch).not.toHaveBeenCalled(); // still saving: stay
+
+  await act(async () => { save.resolve(true); });
+  expect(mockBlocker.enabled).toBe(false); // blocker off first...
+  expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack); // ...then the original back continues
+});
+
+test('if saving fails, the user stays and Retry leaves once it saves', async () => {
+  const guard = jest.fn<() => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+  await openDailyLog(guard);
+
+  swipeBack();
+  expect(await screen.findByText('Your changes couldn’t be saved.')).toBeTruthy();
+  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+
+  fireEvent.press(screen.getByLabelText('Retry'));
+  await waitFor(() => expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack));
+  expect(guard).toHaveBeenCalledTimes(2);
+});
+
+test('if saving fails, Stay keeps the user on the log and back stays protected', async () => {
+  const guard = jest.fn(async () => { throw new Error('offline'); });
+  await openDailyLog(guard);
+
+  swipeBack();
+  expect(await screen.findByText('Your changes couldn’t be saved.')).toBeTruthy();
+  fireEvent.press(screen.getByLabelText('Stay'));
+
+  expect(screen.queryByText('Your changes couldn’t be saved.')).toBeNull();
+  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+  expect(mockBlocker.enabled).toBe(true);
+});
+
+test('with no unsaved-changes check registered, back leaves right away', async () => {
+  await openDailyLog();
+  swipeBack();
+  await waitFor(() => expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack));
 });
