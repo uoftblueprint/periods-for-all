@@ -5,6 +5,7 @@ import { SymptomPicker } from '@/features/health/symptom-picker';
 import { ReflectionInput } from '@/features/health/reflection-input';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings } from '@/foundation/contracts';
+import { PHYSICAL_SYMPTOM_OPTIONS, EMOTIONAL_SYMPTOM_OPTIONS } from '@/features/health/catalog';
 
 const appearance = getAppearance(defaultSettings);
 const options = [{ id: 'headache', label: 'Headache' }, { id: 'fatigue', label: 'Fatigue' }];
@@ -36,6 +37,9 @@ test('opening does not answer; selection and clearing callbacks preserve distinc
 
 test('preview keeps multiple selections and categories independent', () => {
   render(<SymptomsPreview />);
+  for (const { label } of [...PHYSICAL_SYMPTOM_OPTIONS, ...EMOTIONAL_SYMPTOM_OPTIONS]) {
+    expect(screen.getByRole('button', { name: label }).props.accessibilityState.selected).toBe(false);
+  }
   fireEvent.press(screen.getByText('Headache'));
   fireEvent.press(screen.getByText('Back Pain'));
   fireEvent.press(screen.getByText('Anxiety'));

@@ -4,6 +4,7 @@ import { SymptomPicker } from '@/features/health/symptom-picker';
 import { useState } from 'react';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings } from '@/foundation/contracts';
+import { PHYSICAL_SYMPTOM_OPTIONS, EMOTIONAL_SYMPTOM_OPTIONS } from '@/features/health/catalog';
 
 
 export function SymptomsPreview() {
@@ -18,7 +19,7 @@ export function SymptomsPreview() {
 
             <SymptomPicker
                 label={"Physical Symptoms"}
-                options={[{ id: 'headache', label: 'Headache' }, { id: 'menstrualCramps', label: 'Menstrual Cramps' }, {'id': 'backPain', label: 'Back Pain'}, {'id': 'migraines', label: 'Migraines'}, {'id': 'stomachPain', label: 'Stomach Pain'}]}
+                options={PHYSICAL_SYMPTOM_OPTIONS}
                 value={physicalSymptoms}
                 onChange={setPhysicalSymptoms}
                 appearance={appearance}
@@ -26,7 +27,7 @@ export function SymptomsPreview() {
     
             <SymptomPicker 
                 label="Emotional Symptoms"
-                options={[{ id: 'moodSwings', label: 'Mood Swings' }, { id: 'lowMotivation', label: 'Low Motivation' }, {'id': 'difficultyConcentrating', label: 'Difficulty Concentrating'}, {'id': 'anxiety', label: 'Anxiety'}, {'id': 'fatigue', label: 'Fatigue'}]}
+                options={EMOTIONAL_SYMPTOM_OPTIONS}
                 value={emotionalSymptoms}
                 onChange={setEmotionalSymptoms}
                 appearance={appearance}

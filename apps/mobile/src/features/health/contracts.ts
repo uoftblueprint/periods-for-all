@@ -1,4 +1,4 @@
-import { Appearance } from '@/features/settings/appearance';
+import type { Appearance } from '@/features/settings/appearance';
 
 export type LocalDate = string; // YYYY-MM-DD, a calendar day, not a UTC timestamp
 
@@ -33,7 +33,7 @@ export interface HealthStore {
   savePeriodSetup(value: PeriodSetup): Promise<void>;
 }
 export type SymptomPickerProps = {
-  label: string; options: { id: string; label: string }[];
+  label: string; options: readonly { readonly id: string; readonly label: string }[];
   value: string[] | null; onChange: (v: string[] | null) => void;
   appearance: Appearance;
 };
