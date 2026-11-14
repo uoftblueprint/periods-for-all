@@ -17,6 +17,7 @@ export default function StartScreen() {
       <Link href="/auth-preview">Open auth state preview</Link>
       <Link href="/theme-preview">Open Theme Selection Preview</Link>
       <Link href="/calendar-preview">Open calendar preview</Link>
+      <Link href="/symptoms-preview">Open symptoms preview</Link>
     </PreviewScreen>
   );
 }

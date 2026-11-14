@@ -14,15 +14,16 @@ import type { AppButtonProps } from '../foundation/contracts';
  * @param {boolean} [props.busy=false] - Whether the button is in a busy state. Defaults to false.
  * @returns A button component that can be used throughout the app.
  */
-export function AppButton({ label, onPress, disabled = false, busy = false, appearance }: AppButtonProps & { appearance?: Appearance }) {
+export function AppButton({ label, onPress, disabled = false, busy = false, selected, appearance }: AppButtonProps) {
+    const colors = appearance?.colors ?? Colors.light;
     return (
         <Pressable
             onPress={onPress}
             disabled={disabled || busy}
             accessibilityRole="button"
             accessibilityLabel={label}
+            accessibilityState={{disabled: disabled || busy, busy, selected}}
             aria-busy={busy}
-            accessibilityState={{disabled: disabled || busy, busy}}
             style={({ pressed }) => [{
                 backgroundColor: appearance?.colors.backgroundElement,
                 minHeight: 44,
@@ -34,8 +35,13 @@ export function AppButton({ label, onPress, disabled = false, busy = false, appe
                 borderRadius: Spacing.one,
                 opacity: disabled || busy ? 0.5 : pressed ? 0.75 : 1,
                 padding: Spacing.two
+        }, selected === undefined ? undefined : {
+            backgroundColor: selected ? colors.backgroundSelected : colors.backgroundElement,
+            borderWidth: selected ? 2 : 1,
+            borderColor: selected ? colors.text : colors.textSecondary,
+            borderRadius: 20,
         }]}>
-                <Text style={appearance && { color: appearance.colors.text, fontSize: 16 * appearance.fontScale }}>{label}</Text>
+                <Text style={appearance ? { color: colors.text, fontSize: 16 * appearance.fontScale } : undefined}>{label}</Text>
         </Pressable>
     )
 }
