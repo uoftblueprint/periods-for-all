@@ -1,6 +1,9 @@
 import { expect, jest, test } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { DailyLogScreen, type DailyLogScreenProps } from '@/features/health/daily-log-screen';
+import { createRef } from 'react';
+import {
+  DailyLogScreen, type DailyLogScreenHandle, type DailyLogScreenProps,
+} from '@/features/health/daily-log-screen';
 import type { DailyLog, HealthStore } from '@/features/health/health-types';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings } from '@/foundation/contracts';
@@ -188,4 +191,25 @@ test('a slow load for an older date never replaces the newer day', async () => {
   fireEvent.press(screen.getByLabelText('Mood: Sad'));
   expect(props.store.patchDailyLog).toHaveBeenCalledWith(TODAY, { mood: 'sad' });
   expect(await screen.findByText('Saved')).toBeTruthy();
+});
+
+test('the route can run the guarded exit (back gesture, tab bar) through the screen ref', async () => {
+  const ref = createRef<DailyLogScreenHandle>();
+  const props = setup({ ref });
+  fireEvent.changeText(await screen.findByLabelText('Daily reflection'), 'Before the back gesture');
+  const go = jest.fn();
+  await act(async () => ref.current!.leave(go));
+  expect(props.store.patchDailyLog).toHaveBeenCalledWith(TODAY, { reflection: 'Before the back gesture' });
+  expect(go).toHaveBeenCalledTimes(1);
+});
+
+test('a guarded exit from the route is blocked by a failed save', async () => {
+  const ref = createRef<DailyLogScreenHandle>();
+  const patchDailyLog = jest.fn<HealthStore['patchDailyLog']>().mockRejectedValue(new Error('offline'));
+  setup({ ref, store: createStore({ patchDailyLog }) });
+  fireEvent.press(await screen.findByLabelText('Mood: Sad'));
+  const go = jest.fn();
+  await act(async () => ref.current!.leave(go));
+  expect(go).not.toHaveBeenCalled();
+  expect(screen.getByText('Not saved yet')).toBeTruthy();
 });

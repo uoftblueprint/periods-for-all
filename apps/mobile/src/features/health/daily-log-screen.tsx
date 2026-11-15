@@ -1,4 +1,4 @@
-import { useRef, useState, type PropsWithChildren } from 'react';
+import { useImperativeHandle, useRef, useState, type PropsWithChildren, type Ref } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import { describeDate, parseDate } from '@/features/calendar/calendar-dates';
@@ -18,6 +18,16 @@ export type DailyLogScreenProps = {
   appearance: Appearance;
   onDateChange: (date: LocalDate) => void;
   onExit: () => void;
+  /** Lets the route (S3-08) run the same guarded exit for back gestures and tab taps. */
+  ref?: Ref<DailyLogScreenHandle>;
+};
+
+export type DailyLogScreenHandle = {
+  /**
+   * Finishes every pending save, then calls `go`. If a save fails, `go` is not called and the
+   * screen shows "Not saved yet" with Retry (saves, then calls `go`) or Stay.
+   */
+  leave(go: () => void): Promise<void>;
 };
 
 const statusText: Record<SaveStatus, string> = {
@@ -32,13 +42,14 @@ const statusText: Record<SaveStatus, string> = {
  * Every way out (previous/next day, Done) finishes pending saves first, and a failed save
  * keeps the user on this day with their draft until they retry or choose to stay.
  */
-export function DailyLogScreen({ date, today, store, appearance, onDateChange, onExit }: DailyLogScreenProps) {
+export function DailyLogScreen({ date, today, store, appearance, onDateChange, onExit, ref }: DailyLogScreenProps) {
   const log = useDailyLog(store, date);
   const [blocked, setBlocked] = useState<{ go: () => void } | null>(null);
   const [leaving, setLeaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const { colors, fontScale } = appearance;
   const text = (size: number) => ({ color: colors.text, fontSize: size * fontScale });
+  useImperativeHandle(ref, () => ({ leave }));
 
   const parsed = parseDate(date);
   if (!parsed) {
