@@ -1,9 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
-
-// Temporary local type until S3-01 merges.
-export type Flow = 'none' | 'veryLight' | 'light' | 'normal' | 'heavy' | 'veryHeavy';
+import type { Flow } from '@/features/health/contracts';
+export type { Flow };
 
 // The five nonzero flow levels, ordered lightest to heaviest.
 const FLOW_LEVELS: { key: Flow; label: string }[] = [

@@ -1,9 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
-
-// Temporary local type until S3-01 merges.
-export type Mood = 'verySad' | 'sad' | 'neutral' | 'happy' | 'veryHappy';
+import type { Mood } from '@/features/health/contracts';
+export type { Mood };
 
 // Unicode emoji as placeholders until Figma face assets are provided.
 const MOODS: { key: Mood; label: string; face: string }[] = [
