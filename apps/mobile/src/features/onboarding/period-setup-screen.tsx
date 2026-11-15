@@ -158,12 +158,6 @@ export function PeriodSetupScreen({
               <Text style={[styles.introTitle, { color: colors.text, fontSize: 24 * fontScale }]}>
                 Let's start tracking your period!
               </Text>
-              <Text style={{
-                color: colors.textSecondary, fontSize: 16 * fontScale,
-                lineHeight: 24 * fontScale, textAlign: 'center',
-              }}>
-                This records your last period to improve cycle predictions.
-              </Text>
             </View>
           )}
 

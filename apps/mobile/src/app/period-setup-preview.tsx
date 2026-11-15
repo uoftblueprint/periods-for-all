@@ -6,7 +6,7 @@ import {
   PeriodSetupScreen, defaultPeriodSetup, type PeriodSetup,
 } from '@/features/onboarding/period-setup-screen';
 
-/** Temporary preview for S3-09 period setup flow. Remove before release. */
+/** Preview route for S3-09 period setup flow. */
 export default function PeriodSetupPreview() {
   const [setup, setSetup] = useState<PeriodSetup>(defaultPeriodSetup);
   const appearance = getAppearance(defaultSettings);
