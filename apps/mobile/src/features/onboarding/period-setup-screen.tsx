@@ -76,7 +76,7 @@ export function PeriodSetupScreen({
   useEffect(() => { if (isComplete) onFinish(); }, [isComplete, onFinish]);
   if (isComplete) return null;
 
-  const step = draft.step;
+  const step = draft.step as Step;
   const info = STEP_INFO[step];
   // Question index for progress dots (0-based, -1 for intro).
   const questionIndex = step === 'lastPeriod' ? 0 : step === 'cycle' ? 1 : step === 'length' ? 2 : -1;
