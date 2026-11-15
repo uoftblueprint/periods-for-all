@@ -170,12 +170,36 @@ test('Continue cannot double-submit while save is in progress', async () => {
   const slowSave = jest.fn<(next: PeriodSetup) => Promise<void>>().mockImplementation(
     () => new Promise((r) => { resolveSave = r; }),
   );
-  setup({ initialValue: { ...defaultPeriodSetup, step: 'cycle' }, onSave: slowSave });
+  setup({ initialValue: { ...defaultPeriodSetup, step: 'cycle', cycleLength: 28 }, onSave: slowSave });
   await act(async () => { fireEvent.press(screen.getByRole('button', { name: 'Continue' })); });
   // Second press while save is in flight
   await act(async () => { fireEvent.press(screen.getByRole('button', { name: 'Saving' })); });
   expect(slowSave).toHaveBeenCalledTimes(1);
   await act(async () => { resolveSave!(); });
+});
+
+// -- Continue disabled until selection --
+
+test('Continue is disabled on wheel step when no value is selected', () => {
+  setup({ initialValue: { ...defaultPeriodSetup, step: 'cycle' } });
+  const btn = screen.getByRole('button', { name: 'Continue' });
+  expect(btn.props.accessibilityState?.disabled ?? btn.props.disabled).toBeTruthy();
+});
+
+test('Continue enables after tapping a wheel value', () => {
+  setup({ initialValue: { ...defaultPeriodSetup, step: 'cycle' } });
+  fireEvent.press(screen.getByRole('radio', { name: '28 Days' }));
+  const btn = screen.getByRole('button', { name: 'Continue' });
+  expect(btn.props.accessibilityState?.disabled ?? btn.props.disabled).toBeFalsy();
+});
+
+// -- Complete state redirects --
+
+test('initialValue at complete calls onFinish and renders nothing', () => {
+  const props = setup({
+    initialValue: { ...defaultPeriodSetup, step: 'complete' },
+  });
+  expect(props.onFinish).toHaveBeenCalled();
 });
 
 // -- Progress dots --

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import type { Appearance } from '@/features/settings/appearance';
@@ -71,8 +71,12 @@ export function PeriodSetupScreen({
   // Ref prevents double-submit while an async save is in flight.
   const saveInFlight = useRef(false);
 
-  // If resumed at 'complete', show the last question step.
-  const step = draft.step === 'complete' ? 'length' : draft.step;
+  // If resumed at 'complete', the user already finished — redirect out.
+  const isComplete = draft.step === 'complete';
+  useEffect(() => { if (isComplete) onFinish(); }, [isComplete, onFinish]);
+  if (isComplete) return null;
+
+  const step = draft.step;
   const info = STEP_INFO[step];
   // Question index for progress dots (0-based, -1 for intro).
   const questionIndex = step === 'lastPeriod' ? 0 : step === 'cycle' ? 1 : step === 'length' ? 2 : -1;
@@ -122,6 +126,11 @@ export function PeriodSetupScreen({
   }
 
   const isLast = step === 'length';
+  // Disable Continue until user explicitly selects a value on question screens.
+  const continueDisabled =
+    (step === 'lastPeriod' && draft.lastPeriodStart == null) ||
+    (step === 'cycle' && draft.cycleLength == null) ||
+    (step === 'length' && draft.periodLength == null);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -225,10 +234,10 @@ export function PeriodSetupScreen({
         <View style={styles.actions}>
           <Pressable
             onPress={handleContinue}
-            disabled={saving}
+            disabled={saving || continueDisabled}
             accessibilityRole="button"
             accessibilityLabel={saving ? 'Saving' : isLast ? 'Finish' : 'Continue'}
-            style={[styles.primaryButton, { opacity: saving ? 0.5 : 1 }]}
+            style={[styles.primaryButton, { opacity: (saving || continueDisabled) ? 0.5 : 1 }]}
           >
             <Text style={[styles.primaryButtonText, { fontSize: 16 * fontScale }]}>
               {saving ? 'Saving...' : isLast ? 'Finish' : 'Continue'}
