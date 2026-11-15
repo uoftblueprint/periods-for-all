@@ -7,7 +7,7 @@ No new packages are required. Run the commands in the [README](../README.md).
 
 - `/`: links to each independent preview.
 - `/login`: shows `LoginScreen` using the shared sign-in service.
-- `/settings`: mounts `SettingsScreen` with editable, temporary state.
+- `/settings`: edits the preferences shared by the settings provider and saves them on this device.
 - `/home`: a development home screen that requires sign-in.
 - `/playground`: a working example of fake success/error responses, and space to try a component.
 
@@ -66,7 +66,32 @@ They do not write storage. The later storage module exports
 `saveSettings(settings: Settings): Promise<void>`; null means no saved preferences.
 It validates loaded values against `Settings`. The integration owner handles loading
 and failures. Applying preferences across the app and saving them are still separate
-product work; the current route holds only temporary local state.
+product work; the local S2R-07 integration connects the route to the existing provider.
+
+## Local onboarding integration (S2R-07)
+
+The development shell keeps its navigator mounted while the onboarding gate hides
+protected content during loading, errors and setup. Preferences are device-wide;
+setup completion is stored per account. The production guard is unchanged.
+`/onboarding-preview` uses the same gate and setup flow with fake services and
+controls for delayed or failed operations. Simulated reopening keeps fake records;
+reloading the browser clears them.
+
+The settings provider preserves `settings`, `error` and `updateSettings(patch)`.
+It also exposes `isLoading`, `loadError` and `retryLoad()`. A read failure blocks
+setup until retry succeeds. Updates remain optimistic and serialized, including
+updates made during loading, but their promises now reject on persistence failure.
+Callers must handle that rejection. A failed save does not prevent later saves.
+
+Expo 57.0.25 currently fails to bundle the SQLite web worker with lazy Metro
+bundling in this checkout. For local web checks, use:
+
+```sh
+EXPO_NO_METRO_LAZY=1 npm run web --workspace=mobile -- --port 8085
+```
+
+This uses an existing Expo CLI option; it adds no package or bundler modification.
+Real authentication still requires the existing local Supabase configuration.
 
 **Button/input:** Use the exported prop types. A busy button must prevent repeated
 presses, and inputs must retain their visible labels. Screens can temporarily use
@@ -76,10 +101,9 @@ the same data flow. Replacing them later is an integration check, not proof they
 ## Checking your work
 
 Run `npm run typecheck --workspace=mobile` and `npm test --workspace=mobile` from
-the repo root. The starter includes three small tests for the fake service using
-Node's built-in runner. React Native component tests need an agreed compatible test
-setup later; do not independently install competing frameworks. Existing `expo lint`
-is not a configured check yet.
+the repo root. The existing test command runs service tests with Node's built-in
+runner and component tests with Jest/React Native Testing Library. Reuse these tools;
+no new test packages are needed. Existing `expo lint` is not a configured check yet.
 
 For each feature, try its normal behavior, an error case and relevant accessibility
 behavior. Add meaningful automated tests when the shared tools support that feature.
@@ -102,3 +126,24 @@ revised for these placeholders and interfaces; confirm the starter is merged and
 checkout includes it before claiming dependent work. The two-week commitment still
 needs a capacity/dependency check. Eight people can start different pieces, but they
 cannot independently certify the complete product before integration.
+
+
+### Final setup flow reconciliation (#62)
+
+S2R-07 integrates #62 as merged in `3882c4f`: its introduction artwork, typography,
+header, theme cards, progress indicator and action wording are retained. The final
+“Continue to Period Information” action still finishes display setup and opens the
+existing Home destination; period-information routing is outside #53.
+
+Integration retains synchronous pending guards, disabled native controls, keyboard
+radio navigation, focus on setup entry, scroll reset between steps and iOS Dynamic
+Type measurement refresh. DisplaySetup owns its safe-area insets; the gate avoids
+applying a second set. Main's real signup route and Create account link are retained.
+
+After reconciliation, typecheck and 299 tests passed. Real local Supabase checks on
+web covered login → setup → save → Home, reload/session restoration, saved text/theme
+choices in Settings, logout and same-account re-login. A separate injected preview
+failure retained largest-text/dark/motion selections, disabled controls while saving,
+and allowed retry. These injected checks do not prove real storage failure handling.
+Native maximum-text, full native relaunch and spoken VoiceOver checks have not been
+repeated against this final UI and remain for final review.

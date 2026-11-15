@@ -1,3 +1,5 @@
+import type { Appearance } from "@/features/settings/appearance";
+
 // Shared agreements. Discuss changes here before changing a screen's props.
 export type User = { id: string; email: string };
 export type Credentials = { email: string; password: string };
@@ -13,9 +15,13 @@ export type AuthService = {
   subscribe: (listener: (user: User | null) => void) => () => void;
 };
 
+// Allowed values. The Settings type and normalizeSettings() both read these lists.
+export const textSizes = ['standard', 'large', 'extraLarge', 'largest'] as const;
+export const colorSchemes = ['light', 'dark', 'highContrast'] as const;
+
 export type Settings = {
-  textSize: 'standard' | 'large';
-  colorScheme: 'light' | 'dark';
+  textSize: (typeof textSizes)[number];
+  colorScheme: (typeof colorSchemes)[number];
   reduceMotion: boolean;
 };
 export const defaultSettings: Settings = {
@@ -37,6 +43,8 @@ export type AppButtonProps = {
   onPress: () => void;
   disabled?: boolean;
   busy?: boolean;
+  selected?: boolean;
+  appearance?: Appearance;
 };
 export type TextFieldProps = {
   label: string;
@@ -48,4 +56,9 @@ export type TextFieldProps = {
   editable?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
+  maxLength?: number;
+  multiline?: boolean;
+  onBlur?: () => void;
+  appearance?: Appearance;
+  placeholder?: string;
 };

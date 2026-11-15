@@ -2,9 +2,10 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/app-button';
 import { TextField } from '@/components/text-field';
+import type { Appearance } from '@/features/settings/appearance';
 import type { LoginScreenProps } from '@/foundation/contracts';
 
-export function LoginScreen(props: LoginScreenProps) {
+export function LoginScreen(props: LoginScreenProps & { appearance?: Appearance }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ export function LoginScreen(props: LoginScreenProps) {
   return (
     <View>
       <TextField
+        appearance={props.appearance}
         label="Email address"
         value={email}
         onChangeText={setEmail}
@@ -54,6 +56,7 @@ export function LoginScreen(props: LoginScreenProps) {
         editable={!loading}
       />
       <TextField
+        appearance={props.appearance}
         label="Password"
         value={password}
         onChangeText={setPassword}
@@ -62,9 +65,10 @@ export function LoginScreen(props: LoginScreenProps) {
         autoCorrect={false}
         editable={!loading}
       />
-      {error && <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">{error}</Text>}
+      {error && <Text style={[styles.error, props.appearance && { color: props.appearance.colors.text, fontSize: 14 * props.appearance.fontScale }]} accessibilityRole="alert" accessibilityLiveRegion="assertive">{error}</Text>}
       {loading && <ActivityIndicator accessibilityLabel="Signing in" />}
       <AppButton
+        appearance={props.appearance}
         label={loading ? 'Signing in' : 'Login'}
         busy={loading}
         onPress={handleLogin}
