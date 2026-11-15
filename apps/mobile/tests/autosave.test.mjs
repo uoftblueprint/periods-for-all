@@ -40,9 +40,9 @@ test('a choice saves right away with only that field', () => {
 });
 
 test('choosing the same value again does not save', () => {
-  const { calls, autosave } = setup({ ...emptyAnswers, mood: 'happy', physicalSymptoms: ['cramps'] });
+  const { calls, autosave } = setup({ ...emptyAnswers, mood: 'happy', physicalSymptoms: ['menstrualCramps'] });
   autosave.setField('mood', 'happy');
-  autosave.setField('physicalSymptoms', ['cramps']);
+  autosave.setField('physicalSymptoms', ['menstrualCramps']);
   assert.equal(calls.length, 0);
 });
 
@@ -135,7 +135,7 @@ test('a new edit after a failure retries the failed fields with it', async () =>
 
 test('clearing answers sends null, and an explicit "none" stays an empty list', async () => {
   const { calls, autosave } = setup({
-    ...emptyAnswers, mood: 'happy', reflection: 'Old note', physicalSymptoms: ['cramps'],
+    ...emptyAnswers, mood: 'happy', reflection: 'Old note', physicalSymptoms: ['menstrualCramps'],
   });
   autosave.setField('mood', null);
   autosave.setField('physicalSymptoms', []);

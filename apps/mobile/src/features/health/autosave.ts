@@ -1,4 +1,4 @@
-import type { DailyLog, DailyLogPatch, HealthStore, LocalDate } from '@/features/health/health-types';
+import type { DailyLog, DailyLogPatch, HealthStore, LocalDate } from '@/features/health/contracts';
 
 export type Answers = Omit<DailyLog, 'date'>;
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Button, Switch, Text, View } from 'react-native';
 import { DailyLogScreen } from '@/features/health/daily-log-screen';
-import type { DailyLog, DailyLogPatch, HealthStore, LocalDate } from '@/features/health/health-types';
+import type { DailyLog, DailyLogPatch, HealthStore, LocalDate } from '@/features/health/contracts';
 import { getAppearance } from '@/features/settings/appearance';
 import { colorSchemes, defaultSettings, textSizes } from '@/foundation/contracts';
 import { PreviewScreen } from '@/foundation/preview-screen';
@@ -11,7 +11,7 @@ const TODAY = '2026-11-07';
 const SAMPLE: Record<LocalDate, DailyLog> = {
   '2026-11-06': {
     date: '2026-11-06', mood: 'happy', flow: 'light',
-    physicalSymptoms: ['cramps'], emotionalSymptoms: [], reflection: 'Went for a walk.',
+    physicalSymptoms: ['menstrualCramps'], emotionalSymptoms: [], reflection: 'Went for a walk.',
   },
 };
 
@@ -21,7 +21,7 @@ const blank = (date: LocalDate): DailyLog => ({
   date, mood: null, flow: null, physicalSymptoms: null, emotionalSymptoms: null, reflection: null,
 });
 
-// temp in-memory store until S3-01.
+// In-memory fake store for the preview (made-up data).
 function createPreviewStore(controls: { current: Controls }, record: (line: string) => void): HealthStore {
   const days: Record<LocalDate, DailyLog> = structuredClone(SAMPLE);
   return {

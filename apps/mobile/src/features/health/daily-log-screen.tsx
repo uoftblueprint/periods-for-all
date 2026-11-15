@@ -1,12 +1,14 @@
 import { useImperativeHandle, useRef, useState, type PropsWithChildren, type Ref } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import { describeDate, parseDate } from '@/features/calendar/calendar-dates';
 import type { Answers, SaveStatus } from '@/features/health/autosave';
 import {
-  EMOTIONAL_SYMPTOMS, FLOW_OPTIONS, MOOD_OPTIONS, PHYSICAL_SYMPTOMS,
-  type HealthStore, type LocalDate,
-} from '@/features/health/health-types';
+  EMOTIONAL_SYMPTOM_OPTIONS, FLOW_OPTIONS, MOOD_OPTIONS, PHYSICAL_SYMPTOM_OPTIONS,
+} from '@/features/health/catalog';
+import type { HealthStore, LocalDate } from '@/features/health/contracts';
+import { ReflectionInput } from '@/features/health/reflection-input';
+import { SymptomPicker } from '@/features/health/symptom-picker';
 import { isOnOrAfter, shiftDay, shortDayTitle } from '@/features/health/local-date';
 import { useDailyLog } from '@/features/health/use-daily-log';
 import type { Appearance } from '@/features/settings/appearance';
@@ -142,16 +144,12 @@ export function DailyLogScreen({ date, today, store, appearance, onDateChange, o
             )}
           </View>
           <AnswerControls draft={log.draft} appearance={appearance} set={log.autosave.setField} />
-          <Card title="Daily Reflection" appearance={appearance}>
-            <TextInput
-              accessibilityLabel="Daily reflection"
-              placeholder="How was today?"
-              placeholderTextColor={colors.textSecondary}
-              multiline
+          <Card appearance={appearance}>
+            <ReflectionInput
               value={log.draft.reflection ?? ''}
               onChangeText={(value) => log.autosave.setField('reflection', value)}
               onBlur={log.autosave.blurReflection}
-              style={[text(16), { minHeight: 96, textAlignVertical: 'top' }]}
+              appearance={appearance}
             />
           </Card>
         </>
@@ -162,7 +160,8 @@ export function DailyLogScreen({ date, today, store, appearance, onDateChange, o
   );
 }
 
-// TEMPORARY: to replace with S3-04's MoodPicker/FlowPicker and S3-05's SymptomPicker.
+// Mood and Flow are temporary chips until S3-04's pickers merge. Symptoms use S3-05's picker,
+// which shows its own heading, so those cards have no title bar.
 function AnswerControls({ draft, appearance, set }: {
   draft: Answers;
   appearance: Appearance;
@@ -194,87 +193,54 @@ function AnswerControls({ draft, appearance, set }: {
           />
         ))}
       </Card>
-      <SymptomGroup
-        title="Physical Symptoms"
-        labelPrefix="Physical symptom"
-        options={PHYSICAL_SYMPTOMS}
-        value={draft.physicalSymptoms}
-        appearance={appearance}
-        onChange={(value) => set('physicalSymptoms', value)}
-      />
-      <SymptomGroup
-        title="Emotional Symptoms"
-        labelPrefix="Emotional symptom"
-        options={EMOTIONAL_SYMPTOMS}
-        value={draft.emotionalSymptoms}
-        appearance={appearance}
-        onChange={(value) => set('emotionalSymptoms', value)}
-      />
+      <Card appearance={appearance}>
+        <SymptomPicker
+          label="Physical Symptoms"
+          options={PHYSICAL_SYMPTOM_OPTIONS}
+          value={draft.physicalSymptoms}
+          onChange={(value) => set('physicalSymptoms', value)}
+          appearance={appearance}
+        />
+      </Card>
+      <Card appearance={appearance}>
+        <SymptomPicker
+          label="Emotional Symptoms"
+          options={EMOTIONAL_SYMPTOM_OPTIONS}
+          value={draft.emotionalSymptoms}
+          onChange={(value) => set('emotionalSymptoms', value)}
+          appearance={appearance}
+        />
+      </Card>
     </>
   );
 }
 
-// null = not answered, [] = "none of these" chosen on purpose.
-function SymptomGroup({ title, labelPrefix, options, value, appearance, onChange }: {
-  title: string;
-  labelPrefix: string;
-  options: { id: string; label: string }[];
-  value: string[] | null;
-  appearance: Appearance;
-  onChange: (value: string[] | null) => void;
-}) {
-  function toggle(id: string) {
-    const current = value ?? [];
-    const next = current.includes(id) ? current.filter((v) => v !== id) : [...current, id];
-    onChange(next.length ? next : null);
-  }
-  return (
-    <Card title={title} appearance={appearance} wrap>
-      {options.map((o) => (
-        <Chip
-          key={o.id}
-          label={`${labelPrefix}: ${o.label}`}
-          text={o.label}
-          selected={value?.includes(o.id) ?? false}
-          appearance={appearance}
-          onPress={() => toggle(o.id)}
-        />
-      ))}
-      <Chip
-        label={`${labelPrefix}: None of these`}
-        text="None of these"
-        selected={value !== null && value.length === 0}
-        appearance={appearance}
-        onPress={() => onChange(value !== null && value.length === 0 ? null : [])}
-      />
-    </Card>
-  );
-}
-
 function Card({ title, appearance, wrap = false, children }: PropsWithChildren<{
-  title: string;
+  title?: string;
   appearance: Appearance;
   wrap?: boolean;
 }>) {
   const { colors, fontScale } = appearance;
   return (
     <View style={{ borderWidth: 1, borderColor: colors.textSecondary, borderRadius: Spacing.two, overflow: 'hidden' }}>
-      <View
-        style={{
-          backgroundColor: colors.backgroundElement,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.textSecondary,
-          paddingVertical: Spacing.two,
-          paddingHorizontal: Spacing.three,
-        }}
-      >
-        <Text
-          accessibilityRole="header"
-          style={{ color: colors.text, fontSize: 16 * fontScale, fontWeight: '700', textAlign: 'center' }}
+      {title !== undefined && (
+        <View
+          style={{
+            backgroundColor: colors.backgroundElement,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.textSecondary,
+            paddingVertical: Spacing.two,
+            paddingHorizontal: Spacing.three,
+          }}
         >
-          {title}
-        </Text>
-      </View>
+          <Text
+            accessibilityRole="header"
+            style={{ color: colors.text, fontSize: 16 * fontScale, fontWeight: '700', textAlign: 'center' }}
+          >
+            {title}
+          </Text>
+        </View>
+      )}
       <View
         style={[
           { padding: Spacing.three, backgroundColor: colors.background },

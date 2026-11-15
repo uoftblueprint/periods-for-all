@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { createAutosave, type Answers, type Autosave, type SaveStatus } from '@/features/health/autosave';
-import type { HealthStore, LocalDate } from '@/features/health/health-types';
+import type { HealthStore, LocalDate } from '@/features/health/contracts';
 
 export type DailyLogState =
   | { phase: 'loading' }
