@@ -1,97 +1,111 @@
-// F01: shares accessibility settings with the whole app and saves changes.
-
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { defaultSettings, type Settings } from '@/foundation/contracts';
 import { loadSettings, saveSettings } from './settings-storage';
 import { loadInitialSettings, saveSettingsSafely } from './settings-helpers';
 
 type SettingsContextValue = {
   settings: Settings;
-  // Pass only the fields that changed, e.g. updateSettings({ textSize: 'large' }).
-  // A full Settings object is still accepted.
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
   error: string | null;
+  isLoading: boolean;
+  loadError: string | null;
+  retryLoad: () => void;
 };
 
-// A shared box that any screen can open with useSettings().
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
+  const latest = useRef<Settings>(defaultSettings);
+  const loaded = useRef(false);
+  const mounted = useRef(true);
+  const pending = useRef<Partial<Settings>>({});
+  const waiting = useRef<{ resolve: () => void; reject: (error: Error) => void }[]>([]);
+  const saveCount = useRef(0);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
 
-  // Refs change immediately, without waiting for the screen to redraw.
-  const latest = useRef<Settings>(defaultSettings);  // newest settings
-  const loaded = useRef(false);                       // has the first load finished?
-  const pending = useRef<Partial<Settings>>({});      // changes made before it finished
-  const saveCount = useRef(0);                        // numbers each save
-  const saveQueue = useRef<Promise<unknown>>(Promise.resolve()); // saves run one at a time
-
-  // Saves in order, and only the newest save decides the message.
-  async function save(next: Settings) {
+  const save = useCallback(async (next: Settings) => {
     const id = ++saveCount.current;
-    // Wait for earlier saves to finish first, so an older save can never land
-    // after a newer one and leave old settings on the device.
     const run = saveQueue.current.then(() => saveSettingsSafely(saveSettings, next));
-    saveQueue.current = run;
-    const saveError = await run;
-    if (id === saveCount.current) setError(saveError);
-  }
+    // Queue recovery is separate from the caller's rejected save promise.
+    saveQueue.current = run.then(() => {}, () => {});
+    const message = await run;
+    if (mounted.current && id === saveCount.current) setError(message);
+    if (message) throw new Error(message);
+  }, []);
 
-  // When the app starts, load saved preferences once.
   useEffect(() => {
-    let cancelled = false; // set if React cleans this effect up before it finishes
-
-    async function load() {
-      const result = await loadInitialSettings(loadSettings, defaultSettings);
-      if (cancelled) return;
-
-      // Keep any change the user made while loading, on top of what was saved.
-      const changedWhileLoading = pending.current;
-      pending.current = {};
-      const merged = { ...result.settings, ...changedWhileLoading };
-      latest.current = merged;
-      setSettings(merged);
-      setError(result.error);
-      loaded.current = true;
-
-      if (Object.keys(changedWhileLoading).length > 0) {
-        await save(merged);
-      }
-    }
-
-    void load();
+    mounted.current = true;
     return () => {
-      cancelled = true;
+      mounted.current = false;
+      waiting.current.splice(0).forEach(({ reject }) => reject(new Error('Settings provider was closed.')));
     };
   }, []);
 
-  // Called when the user changes a setting: merge it in, show it now, then save.
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      await saveQueue.current;
+      const result = await loadInitialSettings(loadSettings, defaultSettings);
+      if (!active) return;
+      setLoadError(result.error);
+      setError(result.error);
+      if (result.error) {
+        const failure = new Error(result.error);
+        waiting.current.splice(0).forEach(({ reject }) => reject(failure));
+        setIsLoading(false);
+        return;
+      }
+      const changes = pending.current;
+      pending.current = {};
+      const callers = waiting.current.splice(0);
+      const next = { ...result.settings, ...changes };
+      latest.current = next;
+      loaded.current = true;
+      setSettings(next);
+      try {
+        if (Object.keys(changes).length) await save(next);
+        callers.forEach(({ resolve }) => resolve());
+      } catch (cause) {
+        const failure = cause instanceof Error ? cause : new Error('Could not save settings.');
+        callers.forEach(({ reject }) => reject(failure));
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+    void load();
+    return () => { active = false; };
+  }, [attempt, save]);
+
+  const retryLoad = useCallback(() => {
+    loaded.current = false;
+    setIsLoading(true);
+    setLoadError(null);
+    setAttempt((n) => n + 1);
+  }, []);
+
   async function updateSettings(patch: Partial<Settings>) {
     const next = { ...latest.current, ...patch };
     latest.current = next;
     setSettings(next);
-
     if (!loaded.current) {
-      // Saved preferences aren't known yet, and saving now could overwrite
-      // them. Remember the change; it is saved once loading finishes.
       pending.current = { ...pending.current, ...patch };
-      return;
+      return new Promise<void>((resolve, reject) => waiting.current.push({ resolve, reject }));
     }
     await save(next);
   }
 
-  return (
-    <SettingsContext.Provider value={{ settings, updateSettings, error }}>
-      {children}
-    </SettingsContext.Provider>
-  );
+  return <SettingsContext.Provider value={{ settings, updateSettings, error, isLoading, loadError, retryLoad }}>
+    {children}
+  </SettingsContext.Provider>;
 }
 
 export function useSettings(): SettingsContextValue {
   const value = useContext(SettingsContext);
-  if (!value) {
-    throw new Error('useSettings() must be used inside <SettingsProvider>.');
-  }
+  if (!value) throw new Error('useSettings() must be used inside <SettingsProvider>.');
   return value;
 }
