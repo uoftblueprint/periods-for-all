@@ -1,3 +1,5 @@
+import type { Appearance } from '@/features/settings/appearance';
+
 export type LocalDate = string; // YYYY-MM-DD, a calendar day, not a UTC timestamp
 
 export type Mood = 'verySad' | 'sad' | 'neutral' | 'happy' | 'veryHappy';
@@ -30,3 +32,12 @@ export interface HealthStore {
   getPeriodSetup(): Promise<PeriodSetup>; // missing → null answers, intro
   savePeriodSetup(value: PeriodSetup): Promise<void>;
 }
+export type SymptomPickerProps = {
+  label: string; options: readonly { readonly id: string; readonly label: string }[];
+  value: string[] | null; onChange: (v: string[] | null) => void;
+  appearance: Appearance;
+};
+export type ReflectionInputProps = {
+  value: string; onChangeText: (text: string) => void;
+  onBlur: () => void; appearance: Appearance;
+};
