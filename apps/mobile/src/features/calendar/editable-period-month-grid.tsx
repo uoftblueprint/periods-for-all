@@ -45,7 +45,6 @@ export type EditablePeriodMonthGridProps = {
   editableMonths: readonly string[];
   onChangeDate: (date: LocalDate, selected: boolean) => void;
   onDraggingChange?: (dragging: boolean) => void;
-  onEdgeTouchActiveChange?: (active: boolean) => void;
   appearance: Appearance;
   disabled?: boolean;
 };
@@ -58,7 +57,6 @@ export function EditablePeriodMonthGrid({
   editableMonths,
   onChangeDate,
   onDraggingChange,
-  onEdgeTouchActiveChange,
   appearance,
   disabled = false,
 }: EditablePeriodMonthGridProps) {
@@ -74,11 +72,9 @@ export function EditablePeriodMonthGrid({
   const editableMonthsRef = useRef(new Set(editableMonths));
   const onChangeDateRef = useRef(onChangeDate);
   const onDraggingChangeRef = useRef(onDraggingChange);
-  const onEdgeTouchActiveChangeRef = useRef(onEdgeTouchActiveChange);
   const layoutRef = useRef<GridLayout>({ width: 0, height: 0 });
   const touchStartRef = useRef<TouchStart | null>(null);
   const gestureRef = useRef<DateSelectionGesture | null>(null);
-  const edgeTouchActiveRef = useRef(false);
 
   weeksRef.current = weeks;
   selectedRef.current = selected;
@@ -87,7 +83,6 @@ export function EditablePeriodMonthGrid({
   editableMonthsRef.current = new Set(editableMonths);
   onChangeDateRef.current = onChangeDate;
   onDraggingChangeRef.current = onDraggingChange;
-  onEdgeTouchActiveChangeRef.current = onEdgeTouchActiveChange;
 
   const dateAtPoint = ({ x, y }: Point): LocalDate | null => {
     const currentWeeks = weeksRef.current;
@@ -146,11 +141,6 @@ export function EditablePeriodMonthGrid({
     const column = row < 0 ? -1 : currentWeeks[row].indexOf(date);
     if (row < 0 || column < 0 || width <= 0 || height <= 0) return;
 
-    if (column === 0) {
-      edgeTouchActiveRef.current = true;
-      onEdgeTouchActiveChangeRef.current?.(true);
-    }
-
     const cellWidth = width / 7;
     const cellHeight = height / currentWeeks.length;
     touchStartRef.current = {
@@ -179,12 +169,9 @@ export function EditablePeriodMonthGrid({
 
   const clearGesture = () => {
     const wasDragging = gestureRef.current !== null;
-    const wasEdgeTouch = edgeTouchActiveRef.current;
     touchStartRef.current = null;
     gestureRef.current = null;
-    edgeTouchActiveRef.current = false;
     if (wasDragging) onDraggingChangeRef.current?.(false);
-    if (wasEdgeTouch) onEdgeTouchActiveChangeRef.current?.(false);
   };
 
   if (!parsedMonth) {

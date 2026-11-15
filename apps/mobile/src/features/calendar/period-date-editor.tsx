@@ -71,7 +71,6 @@ export type PeriodDateEditorProps = {
   }) => Promise<void>;
   onDone: () => void;
   onCancel: () => void;
-  onEdgeTouchActiveChange?: (active: boolean) => void;
 };
 
 /**
@@ -375,7 +374,6 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
           month={currentMonth}
           onChangeDate={changeDate}
           onDraggingChange={setDraggingDates}
-          onEdgeTouchActiveChange={props.onEdgeTouchActiveChange}
           selectedDates={selectedDates}
           today={props.today}
         />

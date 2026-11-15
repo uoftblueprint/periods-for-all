@@ -38,12 +38,7 @@ test('provides sample dates and appearance controls to the editor', () => {
     '2026-10-08',
     '2026-10-09',
   ]);
-  expect(mockScreenOptions?.gestureEnabled).toBe(true);
-
-  act(() => mockEditorProps.onEdgeTouchActiveChange?.(true));
   expect(mockScreenOptions?.gestureEnabled).toBe(false);
-  act(() => mockEditorProps.onEdgeTouchActiveChange?.(false));
-  expect(mockScreenOptions?.gestureEnabled).toBe(true);
 
   fireEvent(screen.getByLabelText('Dark'), 'valueChange', true);
   fireEvent(screen.getByLabelText('Large text'), 'valueChange', true);

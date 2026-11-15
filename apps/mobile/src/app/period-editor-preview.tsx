@@ -40,7 +40,6 @@ const wait = (milliseconds: number) => new Promise<void>((resolve) => {
 
 export default function PeriodEditorPreview() {
   const [editorKey, setEditorKey] = useState(0);
-  const [edgeTouchActive, setEdgeTouchActive] = useState(false);
   const [savedDates, setSavedDates] = useState(() => new Set(SAMPLE_DATES));
   const [dark, setDark] = useState(false);
   const [largeText, setLargeText] = useState(false);
@@ -65,7 +64,7 @@ export default function PeriodEditorPreview() {
   return (
     <View style={[styles.screen, { backgroundColor: appearance.colors.background }]}>
       <Stack.Screen options={{
-        gestureEnabled: !edgeTouchActive,
+        gestureEnabled: false,
         title: 'Period editor preview',
       }} />
 
@@ -144,7 +143,6 @@ export default function PeriodEditorPreview() {
             return [...savedDates].filter((date) => date >= from && date <= to);
           }}
           onCancel={() => resetEditor('Cancelled. Draft changes were discarded.')}
-          onEdgeTouchActiveChange={setEdgeTouchActive}
           onDone={() => resetEditor('Saved. The editor reopened with committed dates.')}
           onSave={async (change) => {
             await wait(250);
