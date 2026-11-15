@@ -4,7 +4,7 @@ import { createRef } from 'react';
 import {
   DailyLogScreen, type DailyLogScreenHandle, type DailyLogScreenProps,
 } from '@/features/health/daily-log-screen';
-import type { DailyLog, HealthStore } from '@/features/health/health-types';
+import type { DailyLog, HealthStore } from '@/features/health/contracts';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings } from '@/foundation/contracts';
 
@@ -14,7 +14,7 @@ const blank = (date: string): DailyLog => ({
 });
 const filled: DailyLog = {
   date: '2026-11-06', mood: 'happy', flow: 'light',
-  physicalSymptoms: ['cramps'], emotionalSymptoms: [], reflection: 'Went for a walk.',
+  physicalSymptoms: ['menstrualCramps'], emotionalSymptoms: [], reflection: 'Went for a walk.',
 };
 
 function createStore(overrides: Partial<HealthStore> = {}) {
@@ -47,23 +47,26 @@ function setup(overrides: Partial<DailyLogScreenProps> = {}) {
 }
 
 const selected = (label: string) => screen.getByLabelText(label).props.accessibilityState?.selected;
+// S3-05's picker labels "No symptoms" the same in both sections: physical first, then emotional.
+const noSymptoms = (section: 'physical' | 'emotional') =>
+  screen.getAllByLabelText('No symptoms')[section === 'physical' ? 0 : 1].props.accessibilityState?.selected;
 
 test('an empty day loads blank and saves nothing', async () => {
   const props = setup();
   expect(await screen.findByLabelText('Mood: Happy')).toBeTruthy();
   expect(selected('Mood: Happy')).toBe(false);
-  expect(screen.getByLabelText('Daily reflection').props.value).toBe('');
+  expect(screen.getByLabelText('Daily Reflection').props.value).toBe('');
   expect(props.store.patchDailyLog).not.toHaveBeenCalled();
   expect(screen.queryByRole('button', { name: /save/i })).toBeNull();
 });
 
 test('a filled day shows its saved answers', async () => {
   setup({ date: filled.date });
-  expect(await screen.findByLabelText('Daily reflection')).toHaveProp('value', 'Went for a walk.');
+  expect(await screen.findByLabelText('Daily Reflection')).toHaveProp('value', 'Went for a walk.');
   expect(selected('Mood: Happy')).toBe(true);
   expect(selected('Flow: Light')).toBe(true);
-  expect(selected('Physical symptom: Cramps')).toBe(true);
-  expect(selected('Emotional symptom: None of these')).toBe(true);
+  expect(selected('Menstrual Cramps')).toBe(true);
+  expect(noSymptoms('emotional')).toBe(true);
 });
 
 test('tapping a choice saves only that field, then shows Saved', async () => {
@@ -73,9 +76,9 @@ test('tapping a choice saves only that field, then shows Saved', async () => {
   expect(await screen.findByText('Saved')).toBeTruthy();
   // Unrelated answers are untouched.
   expect(selected('Flow: Light')).toBe(true);
-  expect(selected('Physical symptom: Cramps')).toBe(true);
-  expect(selected('Emotional symptom: None of these')).toBe(true);
-  expect(screen.getByLabelText('Daily reflection').props.value).toBe('Went for a walk.');
+  expect(selected('Menstrual Cramps')).toBe(true);
+  expect(noSymptoms('emotional')).toBe(true);
+  expect(screen.getByLabelText('Daily Reflection').props.value).toBe('Went for a walk.');
 });
 
 test('a failed load offers Try again', async () => {
@@ -127,18 +130,18 @@ test('a failed save stops navigation, keeps the draft and offers Retry or Stay',
 test('Stay keeps the user on the day with their draft', async () => {
   const patchDailyLog = jest.fn<HealthStore['patchDailyLog']>().mockRejectedValue(new Error('offline'));
   const props = setup({ store: createStore({ patchDailyLog }) });
-  fireEvent.press(await screen.findByLabelText('Mood: Okay'));
+  fireEvent.press(await screen.findByLabelText('Mood: Neutral'));
   await act(async () => fireEvent.press(screen.getByLabelText('Done')));
   fireEvent.press(screen.getByLabelText('Stay'));
   expect(props.onExit).not.toHaveBeenCalled();
   expect(screen.queryByText('Not saved yet')).toBeNull();
   expect(screen.getByText('Could not save')).toBeTruthy(); // the status line comes back
-  expect(selected('Mood: Okay')).toBe(true);
+  expect(selected('Mood: Neutral')).toBe(true);
 });
 
 test('leaving the reflection saves it, and clearing it saves null', async () => {
   const props = setup({ date: filled.date });
-  const input = await screen.findByLabelText('Daily reflection');
+  const input = await screen.findByLabelText('Daily Reflection');
   fireEvent.changeText(input, '');
   fireEvent(input, 'blur');
   expect(props.store.patchDailyLog).toHaveBeenCalledWith(filled.date, { reflection: null });
@@ -147,7 +150,7 @@ test('leaving the reflection saves it, and clearing it saves null', async () => 
 
 test('Done finishes pending saves before calling onExit', async () => {
   const props = setup();
-  const input = await screen.findByLabelText('Daily reflection');
+  const input = await screen.findByLabelText('Daily Reflection');
   fireEvent.changeText(input, 'Short note');
   await act(async () => fireEvent.press(screen.getByLabelText('Done')));
   expect(props.store.patchDailyLog).toHaveBeenCalledWith(TODAY, { reflection: 'Short note' });
@@ -157,13 +160,13 @@ test('Done finishes pending saves before calling onExit', async () => {
 test("moving to another day never sends one day's answers to the other", async () => {
   const store = createStore();
   const props = setup({ store });
-  fireEvent.press(await screen.findByLabelText('Mood: Okay'));
-  fireEvent.changeText(screen.getByLabelText('Daily reflection'), 'Today only');
+  fireEvent.press(await screen.findByLabelText('Mood: Neutral'));
+  fireEvent.changeText(screen.getByLabelText('Daily Reflection'), 'Today only');
   await act(async () => fireEvent.press(screen.getByLabelText('Previous day')));
   expect(props.onDateChange).toHaveBeenCalledWith(filled.date);
 
   props.rerender({ date: filled.date });
-  expect(await screen.findByLabelText('Daily reflection')).toHaveProp('value', 'Went for a walk.');
+  expect(await screen.findByLabelText('Daily Reflection')).toHaveProp('value', 'Went for a walk.');
   fireEvent.press(screen.getByLabelText('Flow: Heavy'));
   await screen.findByText('Saved');
 
@@ -187,7 +190,7 @@ test('a slow load for an older date never replaces the newer day', async () => {
 
   await act(async () => finishOldLoad(filled)); // the answers arrive late
   expect(selected('Mood: Happy')).toBe(false);
-  expect(screen.getByLabelText('Daily reflection').props.value).toBe('');
+  expect(screen.getByLabelText('Daily Reflection').props.value).toBe('');
   fireEvent.press(screen.getByLabelText('Mood: Sad'));
   expect(props.store.patchDailyLog).toHaveBeenCalledWith(TODAY, { mood: 'sad' });
   expect(await screen.findByText('Saved')).toBeTruthy();
@@ -196,7 +199,7 @@ test('a slow load for an older date never replaces the newer day', async () => {
 test('the route can run the guarded exit (back gesture, tab bar) through the screen ref', async () => {
   const ref = createRef<DailyLogScreenHandle>();
   const props = setup({ ref });
-  fireEvent.changeText(await screen.findByLabelText('Daily reflection'), 'Before the back gesture');
+  fireEvent.changeText(await screen.findByLabelText('Daily Reflection'), 'Before the back gesture');
   const go = jest.fn();
   await act(async () => ref.current!.leave(go));
   expect(props.store.patchDailyLog).toHaveBeenCalledWith(TODAY, { reflection: 'Before the back gesture' });
@@ -212,4 +215,14 @@ test('a guarded exit from the route is blocked by a failed save', async () => {
   await act(async () => ref.current!.leave(go));
   expect(go).not.toHaveBeenCalled();
   expect(screen.getByText('Not saved yet')).toBeTruthy();
+});
+
+test("S3-05's symptom picker saves through autosave, only that field", async () => {
+  const props = setup();
+  fireEvent.press(await screen.findByLabelText('Headache'));
+  expect(props.store.patchDailyLog).toHaveBeenCalledWith(TODAY, { physicalSymptoms: ['headache'] });
+  expect(await screen.findByText('Saved')).toBeTruthy();
+  fireEvent.press(screen.getAllByLabelText('No symptoms')[1]);
+  expect(props.store.patchDailyLog).toHaveBeenLastCalledWith(TODAY, { emotionalSymptoms: [] });
+  expect(await screen.findByText('Saved')).toBeTruthy();
 });

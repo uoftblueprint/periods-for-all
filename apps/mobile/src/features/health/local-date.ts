@@ -1,7 +1,7 @@
 import {
   MONTH_NAMES, WEEKDAY_NAMES, addDays, formatDate, parseDate, weekday, type CalendarDate,
 } from '@/features/calendar/calendar-dates';
-import type { LocalDate } from '@/features/health/health-types';
+import type { LocalDate } from '@/features/health/contracts';
 
 // the local calendar day one day before or after the given date
 export function shiftDay(date: LocalDate, delta: -1 | 1): LocalDate {
