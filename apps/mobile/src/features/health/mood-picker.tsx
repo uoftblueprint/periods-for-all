@@ -64,6 +64,23 @@ export function MoodPicker({ value, onChange, appearance }: MoodPickerProps) {
           );
         })}
       </View>
+
+      {/* Clear returns null (unanswered) — always rendered to keep card height stable */}
+      <Pressable
+        onPress={() => onChange(null)}
+        accessibilityRole="button"
+        accessibilityLabel="Clear mood"
+        disabled={value == null}
+        style={{ opacity: value != null ? 1 : 0 }}
+      >
+        <Text style={{
+          color: colors.textSecondary,
+          fontSize: 14 * fontScale,
+          textDecorationLine: 'underline',
+        }}>
+          Clear
+        </Text>
+      </Pressable>
     </View>
   );
 }

@@ -30,6 +30,18 @@ test('tapping Very Sad calls onChange with "verySad"', () => {
   expect(props.onChange).toHaveBeenCalledWith('verySad');
 });
 
+test('Clear calls onChange with null', () => {
+  const props = setup({ value: 'happy' });
+  fireEvent.press(screen.getByRole('button', { name: 'Clear mood' }));
+  expect(props.onChange).toHaveBeenCalledWith(null);
+});
+
+test('Clear is hidden when value is null', () => {
+  setup({ value: null });
+  const btn = screen.getByRole('button', { name: 'Clear mood' });
+  expect(btn.props.style).toEqual(expect.objectContaining({ opacity: 0 }));
+});
+
 test('selected mood has checked state', () => {
   setup({ value: 'neutral' });
   const choice = screen.getByRole('radio', { name: 'Neutral' });
