@@ -6,14 +6,8 @@ import {
   addMonths, buildMonthGrid, monthTitle, parseDate, parseMonth, type YearMonth,
 } from '@/features/calendar/calendar-dates';
 
-// Temporary local type until S3-01 merges shared health types.
-// null = "not answered" — never 0 or a guessed average.
-export type PeriodSetup = {
-  lastPeriodStart: string | null;
-  cycleLength: number | null;
-  periodLength: number | null;
-  step: 'intro' | 'lastPeriod' | 'cycle' | 'length' | 'complete';
-};
+import type { PeriodSetup } from '@/features/health/contracts';
+export type { PeriodSetup };
 
 export const defaultPeriodSetup: PeriodSetup = {
   lastPeriodStart: null, cycleLength: null, periodLength: null, step: 'intro',
