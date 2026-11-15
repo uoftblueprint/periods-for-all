@@ -167,6 +167,20 @@ test('flushAll waits for edits queued behind an in-flight save', async () => {
   assert.equal(await done, true);
 });
 
+test('flushAll also sends text typed while a save is finishing', async () => {
+  const { calls, autosave } = setup();
+  autosave.setField('mood', 'happy');
+  const done = autosave.flushAll();
+  autosave.setField('reflection', 'typed while leaving'); // only starts the typing timer
+  calls[0].resolve();
+  await settle();
+  assert.equal(calls.length, 2, 'the late text is sent before leaving');
+  assert.deepEqual(calls[1].patch, { reflection: 'typed while leaving' });
+  calls[1].resolve();
+  assert.equal(await done, true);
+  assert.equal(autosave.getStatus(), 'saved');
+});
+
 test('flushAll reports failure so navigation can be stopped', async () => {
   const { calls, autosave } = setup();
   autosave.setField('mood', 'sad');
@@ -189,4 +203,26 @@ test('after dispose, late results are ignored and answers are cleared from memor
   assert.deepEqual(autosave.getDraft(), emptyAnswers);
   autosave.setField('mood', 'sad');
   assert.equal(calls.length, 1, 'a disposed controller never saves');
+});
+
+test('dispose still sends unsent edits, after the in-flight save', async () => {
+  const { calls, autosave } = setup();
+  autosave.setField('mood', 'happy'); // in flight
+  autosave.setField('flow', 'light'); // queued
+  autosave.setField('reflection', 'half a thought'); // still in the typing timer
+  autosave.dispose();
+  await settle();
+  assert.equal(calls.length, 1, 'waits for the in-flight save first');
+  assert.deepEqual(autosave.getDraft(), emptyAnswers, 'memory is cleared right away');
+  calls[0].resolve();
+  await settle();
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[1].patch, { flow: 'light', reflection: 'half a thought' });
+});
+
+test('dispose with nothing pending sends nothing', async () => {
+  const { calls, autosave } = setup();
+  autosave.dispose();
+  await settle();
+  assert.equal(calls.length, 0);
 });

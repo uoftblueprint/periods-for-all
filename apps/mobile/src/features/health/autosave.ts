@@ -21,7 +21,10 @@ export type Autosave = {
   retry(): void;
   /** Sends everything pending and waits. Resolves false if anything is still unsaved. */
   flushAll(): Promise<boolean>;
-  /** Stops all saving, ignores late results and clears the answers from memory. */
+  /**
+   * Stops editing and clears the answers from memory. Anything not yet sent gets one last
+   * save (after any in-flight save); its result, like all late results, is ignored.
+   */
   dispose(): void;
   subscribe(listener: () => void): () => void;
 };
@@ -142,13 +145,27 @@ export function createAutosave({ date, store, initial }: {
     },
     async flushAll() {
       if (!alive) return false;
-      commitReflection();
       failed = false;
-      await flush();
-      while (running) await running;
-      return !failed && !inFlight && !hasDirty();
+      // Repeat until nothing is waiting: text typed while a save is finishing only starts
+      // the reflection timer, so it must be picked up on the next pass instead of lost.
+      for (;;) {
+        commitReflection();
+        if (!alive || failed || (!running && !hasDirty())) break;
+        await flush();
+        while (running) await running;
+      }
+      return alive && !failed && !inFlight && !hasDirty() && reflectionTimer === null;
     },
     dispose() {
+      if (!alive) return;
+      // Closed without waiting (e.g. a back gesture): still send what the user changed,
+      // after any save already in flight so it can't be overwritten. Result is ignored.
+      commitReflection();
+      const pending = hasDirty() ? toWirePatch(dirty) : null;
+      if (pending) {
+        const before = running ?? Promise.resolve();
+        void before.then(() => store.patchDailyLog(date, pending)).catch(() => {});
+      }
       alive = false;
       if (reflectionTimer !== null) clearTimeout(reflectionTimer);
       reflectionTimer = null;
