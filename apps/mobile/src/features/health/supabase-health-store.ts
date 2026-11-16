@@ -1,33 +1,25 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// Shapes from S3-01 (#69). Replace with imports from './contracts' once that PR merges.
-export type LocalDate = string;
-export type Mood = 'verySad' | 'sad' | 'neutral' | 'happy' | 'veryHappy';
-export type Flow = 'none' | 'veryLight' | 'light' | 'normal' | 'heavy' | 'veryHeavy';
-export type DailyLog = {
-  date: LocalDate;
-  mood: Mood | null;
-  flow: Flow | null;
-  physicalSymptoms: string[] | null;
-  emotionalSymptoms: string[] | null;
-  reflection: string | null;
-};
-export type DailyLogPatch = Partial<Omit<DailyLog, 'date'>>;
-export type PeriodSetup = {
-  lastPeriodStart: LocalDate | null;
-  cycleLength: number | null;
-  periodLength: number | null;
-  step: 'intro' | 'lastPeriod' | 'cycle' | 'length' | 'complete';
-};
-export interface HealthStore {
-  getPeriodDays(from: LocalDate, to: LocalDate): Promise<LocalDate[]>;
-  updatePeriodDays(change: { add: LocalDate[]; remove: LocalDate[] }): Promise<void>;
-  getDailyLog(date: LocalDate): Promise<DailyLog>;
-  patchDailyLog(date: LocalDate, patch: DailyLogPatch): Promise<DailyLog>;
-  getPeriodSetup(): Promise<PeriodSetup>;
-  savePeriodSetup(value: PeriodSetup): Promise<void>;
-}
+import type {
+  DailyLog,
+  DailyLogPatch,
+  Flow,
+  HealthStore,
+  LocalDate,
+  Mood,
+  PeriodSetup
+} from './contracts';
 
+/*
+ * Database row types: the shape of rows in the daily_logs and period_setup
+ * tables, with snake_case column names. Only this store uses them; screens use
+ * the client-facing types in './contracts' (DailyLog, PeriodSetup).
+ *
+ * Keep the two matching. If you add, remove, rename or retype a field in
+ * DailyLog or PeriodSetup, make the same change here, in the column names
+ * below (DAILY_LOG_SELECT, DAILY_LOG_COLUMNS, the period_setup select and
+ * upsert), and in a new migration under supabase/migrations.
+ */
 type DailyLogRow = {
   date: LocalDate;
   mood: Mood | null;
@@ -46,24 +38,32 @@ type PeriodSetupRow = {
 
 const DAILY_LOG_SELECT = 'date, mood, flow, physical_symptoms, emotional_symptoms, reflection';
 
+// `satisfies` makes the type check fail if a DailyLogPatch field has no column
+// here, or if a column name isn't a DailyLogRow column, so a new contract field
+// can't be silently left out of saves.
 const DAILY_LOG_COLUMNS = {
   mood: 'mood',
   flow: 'flow',
   physicalSymptoms: 'physical_symptoms',
   emotionalSymptoms: 'emotional_symptoms',
   reflection: 'reflection',
-} as const;
+} as const satisfies Record<keyof DailyLogPatch, keyof DailyLogRow>;
 
-/** Maps only the fields present in the patch to their database columns. */
-function toColumns(patch: DailyLogPatch): Record<string, unknown> {
-  const columns: Record<string, unknown> = {};
+/**
+ * Maps only the fields present in the patch to their database columns.
+ * Returns Partial<DailyLogRow> so the upsert is typed against the row shape.
+ * The loop can't prove each value lands in its matching column, hence the cast
+ * at the end; DAILY_LOG_COLUMNS above checks that pairing instead.
+ */
+function toColumns(patch: DailyLogPatch): Partial<DailyLogRow> {
+  const columns: Partial<Record<keyof DailyLogRow, unknown>> = {};
   for (const [field, column] of Object.entries(DAILY_LOG_COLUMNS)) {
     const value = patch[field as keyof DailyLogPatch];
     if (value === undefined) continue;
     // An empty reflection clears it.
     columns[column] = field === 'reflection' && value === '' ? null : value;
   }
-  return columns;
+  return columns as Partial<DailyLogRow>;
 }
 
 function toDailyLog(row: DailyLogRow): DailyLog {
@@ -168,6 +168,8 @@ export function createSupabaseHealthStore(client: SupabaseClient, userId: string
 
     async savePeriodSetup(value) {
       // Setup answers only: this never writes period days or predictions.
+      // `satisfies` checks the saved object against PeriodSetupRow, so a missing,
+      // misspelled or wrongly typed column fails the type check instead of the save.
       const { error } = await client.from('period_setup').upsert(
         {
           user_id: userId,
@@ -175,7 +177,7 @@ export function createSupabaseHealthStore(client: SupabaseClient, userId: string
           cycle_length: value.cycleLength,
           period_length: value.periodLength,
           step: value.step,
-        },
+        } satisfies PeriodSetupRow & { user_id: string },
         { onConflict: 'user_id' },
       );
       if (error) throw new Error(SAVE_SETUP_ERROR);
