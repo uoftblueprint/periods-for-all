@@ -82,6 +82,35 @@ export function buildMonthGrid(ym: YearMonth): (string | null)[][] {
   return weeks;
 }
 
+/**
+ * Sunday-first weeks with adjacent-month dates filling the leading and
+ * trailing cells. These dates are display-only; callers decide interaction.
+ */
+export function buildMonthDisplayGrid(ym: YearMonth): string[][] {
+  const displayWeeks = buildMonthGrid(ym).map((week) => (
+    week.map((date) => date ?? '')
+  ));
+  const previousMonth = addMonths(ym, -1);
+  const nextMonth = addMonths(ym, 1);
+  let previousDay = daysInMonth(previousMonth);
+  let nextDay = 1;
+
+  for (let index = displayWeeks[0].length - 1; index >= 0; index--) {
+    if (displayWeeks[0][index] !== '') continue;
+    displayWeeks[0][index] = formatDate(previousMonth, previousDay);
+    previousDay -= 1;
+  }
+
+  const lastWeek = displayWeeks[displayWeeks.length - 1];
+  for (let index = 0; index < lastWeek.length; index++) {
+    if (lastWeek[index] !== '') continue;
+    lastWeek[index] = formatDate(nextMonth, nextDay);
+    nextDay += 1;
+  }
+
+  return displayWeeks;
+}
+
 /** 'October 2026' */
 export const monthTitle = ({ year, month }: YearMonth) => `${MONTH_NAMES[month - 1]} ${year}`;
 
