@@ -6,22 +6,12 @@
  * stored only through the HealthStore — never in the display-setup completion store.
  */
 import { parseDate } from '@/features/calendar/calendar-dates';
+import type { HealthStore, LocalDate, PeriodSetup } from '@/features/health/contracts';
 
-// TODO(S3-01, #69 / PR #79): import these from '@/features/health/contracts' once it merges,
-// and delete this local copy. The shapes match PR #79's contracts.ts exactly.
-export type LocalDate = string; // YYYY-MM-DD
-export type PeriodSetupStep = 'intro' | 'lastPeriod' | 'cycle' | 'length' | 'complete';
-export type PeriodSetup = {
-  lastPeriodStart: LocalDate | null;
-  cycleLength: number | null;
-  periodLength: number | null;
-  step: PeriodSetupStep;
-};
+export type { LocalDate, PeriodSetup };
+export type PeriodSetupStep = PeriodSetup['step'];
 /** The two HealthStore methods this file needs; the real store is already bound to one user. */
-export type PeriodSetupStore = {
-  getPeriodSetup(): Promise<PeriodSetup>;
-  savePeriodSetup(value: PeriodSetup): Promise<void>;
-};
+export type PeriodSetupStore = Pick<HealthStore, 'getPeriodSetup' | 'savePeriodSetup'>;
 
 export const CYCLE_LENGTH_RANGE = { min: 21, max: 45 } as const;
 export const PERIOD_LENGTH_RANGE = { min: 1, max: 12 } as const;

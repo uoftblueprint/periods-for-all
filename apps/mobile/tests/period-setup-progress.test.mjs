@@ -9,6 +9,7 @@ import {
   routeAfterDisplaySetup,
   startingPoint,
 } from '../src/features/onboarding/period-setup-progress.ts';
+import { createDemoHealthStore } from '../src/features/health/demo-health-store.ts';
 
 const TODAY = '2026-11-04';
 
@@ -216,3 +217,27 @@ for (const [description, raw, expected] of [
     assert.deepEqual(normalizePeriodSetup(raw, TODAY), expected);
   });
 }
+
+test('works with the S3-01 demo store: resume, survive a failed write, then finish', async () => {
+  const store = createDemoHealthStore({ today: TODAY, initialPeriodSetup: null });
+
+  // A new account starts empty; answer the first question.
+  const first = createPeriodSetupSession({ userId: 'user-a', store, today: TODAY });
+  assert.deepEqual(await first.load(), EMPTY_PERIOD_SETUP);
+  await first.save({ ...EMPTY_PERIOD_SETUP, lastPeriodStart: '2026-10-20', step: 'cycle' });
+  first.dispose();
+
+  // Reopening resumes at the saved step with the answer kept.
+  const reopened = createPeriodSetupSession({ userId: 'user-a', store, today: TODAY });
+  const resumed = await reopened.load();
+  assert.equal(resumed.step, 'cycle');
+  assert.equal(resumed.lastPeriodStart, '2026-10-20');
+
+  // A failed finish leaves setup unfinished; trying again completes it.
+  const finished = { ...resumed, cycleLength: 28, periodLength: 5, step: 'complete' };
+  store.failNextWrite(new Error('offline'));
+  await assert.rejects(reopened.save(finished), /offline/);
+  assert.equal((await store.getPeriodSetup()).step, 'cycle');
+  await reopened.save(finished);
+  assert.deepEqual(await store.getPeriodSetup(), finished);
+});
