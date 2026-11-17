@@ -50,11 +50,11 @@ export function MoodPicker({ value, onChange, appearance }: MoodPickerProps) {
               accessibilityRole="radio"
               accessibilityLabel={label}
               accessibilityState={{ checked: isSelected }}
-              style={styles.choice}
+              style={[styles.choice, { height: Math.min(56 * fontScale, 80) }]}
             >
               {/* Selected face scales up from center (40/28 ratio) per issue requirement */}
               <Text style={{
-                fontSize: 28 * fontScale,
+                fontSize: Math.min(28 * fontScale, 40),
                 textAlign: 'center',
                 transform: [{ scale: isSelected ? 40 / 28 : 1 }],
               }}>
@@ -88,5 +88,5 @@ export function MoodPicker({ value, onChange, appearance }: MoodPickerProps) {
 const styles = StyleSheet.create({
   container: { gap: Spacing.two },
   row: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
-  choice: { alignItems: 'center', justifyContent: 'center', padding: Spacing.one, height: 56 },
+  choice: { alignItems: 'center', justifyContent: 'center', padding: Spacing.one },
 });

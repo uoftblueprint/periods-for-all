@@ -49,6 +49,8 @@ export function FlowPicker({ value, onChange, appearance }: FlowPickerProps) {
       <View style={styles.row}>
         {FLOW_LEVELS.map(({ key, label }, i) => {
           const filled = selectedIndex >= 0 && i <= selectedIndex;
+          // Cap drop size so five drops fit on narrow phones at large text sizes.
+          const dropSize = Math.min(38 * fontScale, 52);
           return (
             <Pressable
               key={key}
@@ -60,10 +62,10 @@ export function FlowPicker({ value, onChange, appearance }: FlowPickerProps) {
             >
               <View style={{
                 backgroundColor: filled ? '#A3151C' : '#E8D5C4',
-                width: 38 * fontScale,
-                height: 38 * fontScale,
+                width: dropSize,
+                height: dropSize,
                 // Circle with one sharp corner, rotated so the point faces up.
-                borderRadius: 19 * fontScale,
+                borderRadius: dropSize / 2,
                 borderTopLeftRadius: 0,
                 transform: [{ rotate: '45deg' }],
               }} />
