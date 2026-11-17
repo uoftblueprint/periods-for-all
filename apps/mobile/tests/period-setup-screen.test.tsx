@@ -163,6 +163,16 @@ test('Finish on last step calls onFinish after save', async () => {
   expect(props.onFinish).toHaveBeenCalled();
 });
 
+test('Finish calls onFinish exactly once', async () => {
+  const props = setup({
+    initialValue: { ...defaultPeriodSetup, step: 'length', periodLength: 5 },
+  });
+  await act(async () => {
+    fireEvent.press(screen.getByRole('button', { name: 'Finish' }));
+  });
+  expect(props.onFinish).toHaveBeenCalledTimes(1);
+});
+
 // -- No double submit --
 
 test('Continue cannot double-submit while save is in progress', async () => {

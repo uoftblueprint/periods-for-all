@@ -90,7 +90,6 @@ export function PeriodSetupScreen({
     try {
       await onSave(next);
       setDraft(next);
-      if (next.step === 'complete') onFinish();
     } catch {
       setError('Could not save. Please try again.');
     } finally {
