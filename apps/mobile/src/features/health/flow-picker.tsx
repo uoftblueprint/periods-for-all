@@ -49,7 +49,7 @@ export function FlowPicker({ value, onChange, appearance }: FlowPickerProps) {
       <View style={styles.row}>
         {FLOW_LEVELS.map(({ key, label }, i) => {
           const filled = selectedIndex >= 0 && i <= selectedIndex;
-          // Cap drop size so five drops fit on narrow phones at large text sizes.
+          // Cap icon growth; the row wraps when the available width is narrow.
           const dropSize = Math.min(38 * fontScale, 52);
           return (
             <Pressable
@@ -117,9 +117,10 @@ export function FlowPicker({ value, onChange, appearance }: FlowPickerProps) {
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.two },
-  row: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
-  dropChoice: { alignItems: 'center', padding: Spacing.one },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: Spacing.two },
+  // Padding contains the rotated icon and keeps adjacent touch targets separate.
+  dropChoice: { alignItems: 'center', justifyContent: 'center', padding: 12, minWidth: 44, minHeight: 44 },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.three },
   noFlowButton: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
