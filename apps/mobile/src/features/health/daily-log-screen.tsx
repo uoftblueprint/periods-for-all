@@ -1,12 +1,12 @@
-import { useImperativeHandle, useRef, useState, type PropsWithChildren, type Ref } from 'react';
+import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import { describeDate, parseDate } from '@/features/calendar/calendar-dates';
 import type { Answers, SaveStatus } from '@/features/health/autosave';
-import {
-  EMOTIONAL_SYMPTOM_OPTIONS, FLOW_OPTIONS, MOOD_OPTIONS, PHYSICAL_SYMPTOM_OPTIONS,
-} from '@/features/health/catalog';
+import { EMOTIONAL_SYMPTOM_OPTIONS, PHYSICAL_SYMPTOM_OPTIONS } from '@/features/health/catalog';
 import type { HealthStore, LocalDate } from '@/features/health/contracts';
+import { FlowPicker } from '@/features/health/flow-picker';
+import { MoodPicker } from '@/features/health/mood-picker';
 import { ReflectionInput } from '@/features/health/reflection-input';
 import { SymptomPicker } from '@/features/health/symptom-picker';
 import { isOnOrAfter, shiftDay, shortDayTitle } from '@/features/health/local-date';
@@ -20,17 +20,18 @@ export type DailyLogScreenProps = {
   appearance: Appearance;
   onDateChange: (date: LocalDate) => void;
   onExit: () => void;
-  /** Lets the route (S3-08) run the same guarded exit for back gestures and tab taps. */
-  ref?: Ref<DailyLogScreenHandle>;
+  /**
+   * Agreed with S3-08: the screen hands the route an exit guard, and the route calls it before
+   * header Back or swipe back. The guard finishes every pending save. If a save fails, the screen
+   * shows "Not saved yet" with Retry / Stay, and the guard resolves true after a successful
+   * Retry or false when the user chooses Stay. The route shows no message of its own.
+   * Returns a function that unregisters the guard.
+   */
+  registerExitGuard?: (guard: () => Promise<boolean>) => () => void;
 };
 
-export type DailyLogScreenHandle = {
-  /**
-   * Finishes every pending save, then calls `go`. If a save fails, `go` is not called and the
-   * screen shows "Not saved yet" with Retry (saves, then calls `go`) or Stay.
-   */
-  leave(go: () => void): Promise<void>;
-};
+/** A blocked exit: `go` runs after a successful Retry; `stay` runs if the user stays instead. */
+type BlockedExit = { go: () => void; stay?: () => void };
 
 const statusText: Record<SaveStatus, string> = {
   idle: '',
@@ -44,33 +45,63 @@ const statusText: Record<SaveStatus, string> = {
  * Every way out (previous/next day, Done) finishes pending saves first, and a failed save
  * keeps the user on this day with their draft until they retry or choose to stay.
  */
-export function DailyLogScreen({ date, today, store, appearance, onDateChange, onExit, ref }: DailyLogScreenProps) {
+export function DailyLogScreen({
+  date, today, store, appearance, onDateChange, onExit, registerExitGuard,
+}: DailyLogScreenProps) {
   const log = useDailyLog(store, date);
-  const [blocked, setBlocked] = useState<{ go: () => void } | null>(null);
+  const [blocked, setBlockedState] = useState<BlockedExit | null>(null);
+  const blockedRef = useRef<BlockedExit | null>(null);
   const [leaving, setLeaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const { colors, fontScale } = appearance;
   const text = (size: number) => ({ color: colors.text, fontSize: size * fontScale });
-  useImperativeHandle(ref, () => ({ leave }));
 
-  const parsed = parseDate(date);
-  if (!parsed) {
-    return <Text style={text(16)}>This day can&apos;t be shown.</Text>;
+  // Replacing or clearing a blocked exit tells its owner the user stayed (resolves the guard false).
+  function setBlocked(next: BlockedExit | null) {
+    const previous = blockedRef.current;
+    blockedRef.current = next;
+    setBlockedState(next);
+    if (previous && previous !== next && previous.stay !== next?.stay) previous.stay?.();
   }
 
-  async function leave(go: () => void) {
+  async function leave(go: () => void, stay?: () => void) {
     if (log.phase !== 'ready') return go(); // nothing has been edited yet
     setLeaving(true);
     const saved = await log.autosave.flushAll();
     setLeaving(false);
     if (!saved) {
-      setBlocked({ go });
+      setBlocked({ go, stay });
       // done is at the bottom; bring the "Not saved yet" line into view.
       scrollRef.current?.scrollTo({ y: 0, animated: !appearance.reduceMotion });
       return;
     }
-    setBlocked(null);
+    blockedRef.current = null; // finished: neither stayed nor replaced
+    setBlockedState(null);
     go();
+  }
+
+  // Hand the route a guard for header Back / swipe back. It always uses the latest `leave`.
+  const leaveRef = useRef(leave);
+  useEffect(() => {
+    leaveRef.current = leave;
+  });
+  useEffect(() => {
+    if (!registerExitGuard) return;
+    const unregister = registerExitGuard(
+      () => new Promise<boolean>((resolve) => {
+        void leaveRef.current(() => resolve(true), () => resolve(false));
+      }),
+    );
+    return () => {
+      unregister();
+      blockedRef.current?.stay?.(); // never leave the route waiting after the screen is gone
+      blockedRef.current = null;
+    };
+  }, [registerExitGuard]);
+
+  const parsed = parseDate(date);
+  if (!parsed) {
+    return <Text style={text(16)}>This day can&apos;t be shown.</Text>;
   }
 
   const isToday = date === today;
@@ -134,7 +165,12 @@ export function DailyLogScreen({ date, today, store, appearance, onDateChange, o
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two }}>
                 {blocked ? (
                   <>
-                    <Chip label="Retry" appearance={appearance} disabled={leaving} onPress={() => void leave(blocked.go)} />
+                    <Chip
+                      label="Retry"
+                      appearance={appearance}
+                      disabled={leaving}
+                      onPress={() => void leave(blocked.go, blocked.stay)}
+                    />
                     <Chip label="Stay" appearance={appearance} onPress={() => setBlocked(null)} />
                   </>
                 ) : (
@@ -160,8 +196,8 @@ export function DailyLogScreen({ date, today, store, appearance, onDateChange, o
   );
 }
 
-// Mood and Flow are temporary chips until S3-04's pickers merge. Symptoms use S3-05's picker,
-// which shows its own heading, so those cards have no title bar.
+// S3-04's Mood/Flow pickers and S3-05's symptom picker. Mood and Flow have no heading of their
+// own, so their cards keep the Figma title bar; the symptom pickers show their own heading.
 function AnswerControls({ draft, appearance, set }: {
   draft: Answers;
   appearance: Appearance;
@@ -169,29 +205,11 @@ function AnswerControls({ draft, appearance, set }: {
 }) {
   return (
     <>
-      <Card title="Mood" appearance={appearance} wrap>
-        {MOOD_OPTIONS.map((o) => (
-          <Chip
-            key={o.id}
-            label={`Mood: ${o.label}`}
-            text={o.label}
-            selected={draft.mood === o.id}
-            appearance={appearance}
-            onPress={() => set('mood', draft.mood === o.id ? null : o.id)}
-          />
-        ))}
+      <Card title="Mood" appearance={appearance}>
+        <MoodPicker value={draft.mood} onChange={(value) => set('mood', value)} appearance={appearance} />
       </Card>
-      <Card title="Flow" appearance={appearance} wrap>
-        {FLOW_OPTIONS.map((o) => (
-          <Chip
-            key={o.id}
-            label={`Flow: ${o.label}`}
-            text={o.label}
-            selected={draft.flow === o.id}
-            appearance={appearance}
-            onPress={() => set('flow', draft.flow === o.id ? null : o.id)}
-          />
-        ))}
+      <Card title="Flow" appearance={appearance}>
+        <FlowPicker value={draft.flow} onChange={(value) => set('flow', value)} appearance={appearance} />
       </Card>
       <Card appearance={appearance}>
         <SymptomPicker
