@@ -19,6 +19,7 @@ export default function StartScreen() {
       <Link href="/calendar-preview">Open calendar preview</Link>
       <Link href={'/period-editor-preview' as Href}>Open period editor preview</Link>
       <Link href="/symptoms-preview">Open symptoms preview</Link>
+      <Link href="/daily-log-preview">Open daily log preview</Link>
     </PreviewScreen>
   );
 }
