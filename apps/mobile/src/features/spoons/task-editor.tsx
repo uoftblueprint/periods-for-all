@@ -84,7 +84,14 @@ function TaskEditorContent({
     if (completed || pendingRef.current || !onDelete) return;
     Alert.alert('Delete task?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => void runMutation(onDelete, 'Could not delete task') },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          if (!mountedRef.current) return;
+          void runMutation(onDelete, 'Could not delete task');
+        },
+      },
     ]);
   };
 

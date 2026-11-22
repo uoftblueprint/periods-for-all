@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { Appearance } from '@/features/settings/appearance';
 import type { SpoonTaskDraft } from '@/features/spoons/contracts';
@@ -68,7 +68,14 @@ function QuickTaskEditorContent({ mode, appearance, onSave, onCancel, onDelete, 
     if (!onDelete || pendingRef.current) return;
     Alert.alert('Delete task?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => void mutate(onDelete, 'Could not delete task') },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          if (!mountedRef.current) return;
+          void mutate(onDelete, 'Could not delete task');
+        },
+      },
     ]);
   };
 
@@ -86,52 +93,54 @@ function QuickTaskEditorContent({ mode, appearance, onSave, onCancel, onDelete, 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.selectedBorder }]}
     >
-      <TextInput
-        accessibilityLabel="Task name"
-        autoFocus
-        value={state.name}
-        onChangeText={(name) => dispatch({ type: 'setName', name })}
-        onSubmitEditing={save}
-        editable={!pending}
-        returnKeyType="done"
-        style={[styles.name, { color: colors.text, backgroundColor: colors.field, borderColor: errors.name ? colors.error : colors.border }]}
-      />
-      {errors.name && <Text accessibilityRole="alert" style={{ color: colors.error }}>{errors.name}</Text>}
-      <View style={styles.actionRow}>
-        <QuickAction label="Date & Time" onPress={() => setPanel(panel === 'schedule' ? null : 'schedule')} appearance={appearance} disabled={pending} />
-        <QuickAction label="Spoons" onPress={() => setPanel(panel === 'spoons' ? null : 'spoons')} appearance={appearance} disabled={pending} />
-        <QuickAction label="More details" onPress={() => onOpenDetails(state)} appearance={appearance} disabled={pending} />
-      </View>
-      {panel === 'spoons' && (
-        <SpoonAmountSelector
-          kind={state.kind} value={state.amount} appearance={appearance} disabled={pending}
-          error={errors.amount} onChange={(amount) => dispatch({ type: 'setAmount', amount })}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <TextInput
+          accessibilityLabel="Task name"
+          autoFocus
+          value={state.name}
+          onChangeText={(name) => dispatch({ type: 'setName', name })}
+          onSubmitEditing={save}
+          editable={!pending}
+          returnKeyType="done"
+          style={[styles.name, { color: colors.text, backgroundColor: colors.field, borderColor: errors.name ? colors.error : colors.border }]}
         />
-      )}
-      {panel === 'schedule' && (
-        <OptionalScheduleFields
-          appearance={appearance} disabled={pending}
-          dateEnabled={state.dateEnabled} date={state.date}
-          timeEnabled={state.timeEnabled} time={state.time}
-          errors={{ date: errors.date, time: errors.time }}
-          onDateEnabledChange={(enabled) => {
-            dispatch({ type: 'setDateEnabled', enabled });
-            if (enabled && !state.date) dispatch({ type: 'setDate', date: mode.defaultDate });
-          }}
-          onDateChange={(date) => dispatch({ type: 'setDate', date })}
-          onTimeEnabledChange={(enabled) => dispatch({ type: 'setTimeEnabled', enabled })}
-          onTimeChange={(time) => dispatch({ type: 'setTime', time })}
-        />
-      )}
-      <View style={styles.actionRow}>
-        <QuickAction label="Save task" onPress={save} appearance={appearance} disabled={pending} />
-        <QuickAction label="Cancel editing" onPress={onCancel} appearance={appearance} disabled={pending} />
-        {mode.type === 'create' ? (
-          <QuickAction label="Discard new task" onPress={onCancel} appearance={appearance} disabled={pending} destructive />
-        ) : onDelete ? (
-          <QuickAction label="Delete task" onPress={remove} appearance={appearance} disabled={pending} destructive />
-        ) : null}
-      </View>
+        {errors.name && <Text accessibilityRole="alert" style={{ color: colors.error }}>{errors.name}</Text>}
+        <View style={styles.actionRow}>
+          <QuickAction label="Date & Time" onPress={() => setPanel(panel === 'schedule' ? null : 'schedule')} appearance={appearance} disabled={pending} />
+          <QuickAction label="Spoons" onPress={() => setPanel(panel === 'spoons' ? null : 'spoons')} appearance={appearance} disabled={pending} />
+          <QuickAction label="More details" onPress={() => onOpenDetails(state)} appearance={appearance} disabled={pending} />
+        </View>
+        {panel === 'spoons' && (
+          <SpoonAmountSelector
+            kind={state.kind} value={state.amount} appearance={appearance} disabled={pending}
+            error={errors.amount} onChange={(amount) => dispatch({ type: 'setAmount', amount })}
+          />
+        )}
+        {panel === 'schedule' && (
+          <OptionalScheduleFields
+            appearance={appearance} disabled={pending}
+            dateEnabled={state.dateEnabled} date={state.date}
+            timeEnabled={state.timeEnabled} time={state.time}
+            errors={{ date: errors.date, time: errors.time }}
+            onDateEnabledChange={(enabled) => {
+              dispatch({ type: 'setDateEnabled', enabled });
+              if (enabled && !state.date) dispatch({ type: 'setDate', date: mode.defaultDate });
+            }}
+            onDateChange={(date) => dispatch({ type: 'setDate', date })}
+            onTimeEnabledChange={(enabled) => dispatch({ type: 'setTimeEnabled', enabled })}
+            onTimeChange={(time) => dispatch({ type: 'setTime', time })}
+          />
+        )}
+        <View style={styles.actionRow}>
+          <QuickAction label="Save task" onPress={save} appearance={appearance} disabled={pending} />
+          <QuickAction label="Cancel editing" onPress={onCancel} appearance={appearance} disabled={pending} />
+          {mode.type === 'create' ? (
+            <QuickAction label="Discard new task" onPress={onCancel} appearance={appearance} disabled={pending} destructive />
+          ) : onDelete ? (
+            <QuickAction label="Delete task" onPress={remove} appearance={appearance} disabled={pending} destructive />
+          ) : null}
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -153,6 +162,7 @@ function QuickAction({
 
 const styles = StyleSheet.create({
   container: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, gap: 12, padding: 12 },
+  content: { flexGrow: 1, gap: 12 },
   name: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   action: {

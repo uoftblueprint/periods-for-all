@@ -1,6 +1,6 @@
 import { afterEach, expect, jest, test } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, ScrollView } from 'react-native';
 import { QuickTaskEditor } from '@/features/spoons/quick-task-editor';
 import { getAppearance } from '@/features/settings/appearance';
 import { defaultSettings } from '@/foundation/contracts';
@@ -66,6 +66,34 @@ test('edit mode initializes fields and confirms delete', async () => {
     alert.mock.calls[0][2]!.find((button) => button.style === 'destructive')!.onPress?.();
   });
   expect(onDelete).toHaveBeenCalledTimes(1);
+});
+
+test('expanded controls stay in a keyboard-friendly scroll container', () => {
+  const view = render(<QuickTaskEditor {...props} mode={createMode} onSave={jest.fn(async () => {})} />);
+  const scroll = view.UNSAFE_getByType(ScrollView);
+  expect(scroll.props.keyboardShouldPersistTaps).toBe('handled');
+  expect(scroll.props.contentContainerStyle).toEqual(expect.objectContaining({ flexGrow: 1 }));
+});
+
+test('a delete confirmation from a replaced quick editor cannot delete the refreshed task', () => {
+  const onDelete = jest.fn(async () => {});
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const editorProps = { ...props, onSave: jest.fn(async () => {}), onDelete };
+  const { rerender } = render(
+    <QuickTaskEditor {...editorProps} mode={{ type: 'edit', task, defaultDate: task.date }} />,
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Delete task' }));
+  const confirm = alert.mock.calls[0][2]!.find((button) => button.style === 'destructive')!;
+
+  rerender(<QuickTaskEditor {...editorProps} mode={{ type: 'edit', defaultDate: task.date, task: {
+    ...task,
+    completion: {
+      taskId: task.id, kind: 'complete', requestedAmount: 2, appliedChange: -2, at: '2026-11-22T10:00:00.000Z',
+    },
+  } }} />);
+  act(() => confirm.onPress?.());
+
+  expect(onDelete).not.toHaveBeenCalled();
 });
 
 test('completed edits expose no save or delete path', () => {

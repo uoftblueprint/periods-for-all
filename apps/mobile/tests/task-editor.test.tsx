@@ -97,6 +97,27 @@ test('edit mode confirms delete, guards duplicate confirmation actions, and allo
   await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(2));
 });
 
+test('a delete confirmation from a replaced editor cannot delete the refreshed task', () => {
+  const onDelete = jest.fn(async () => {});
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const props = { ...baseProps, onSave: jest.fn(async () => {}), onDelete };
+  const { rerender } = render(
+    <TaskEditor {...props} mode={{ type: 'edit', task, defaultDate: task.date }} />,
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Delete task' }));
+  const confirm = alert.mock.calls[0][2]!.find((button) => button.style === 'destructive')!;
+
+  rerender(<TaskEditor {...props} mode={{ type: 'edit', defaultDate: task.date, task: {
+    ...task,
+    completion: {
+      taskId: task.id, kind: 'complete', requestedAmount: 2, appliedChange: -2, at: '2026-11-22T10:00:00.000Z',
+    },
+  } }} />);
+  act(() => confirm.onPress?.());
+
+  expect(onDelete).not.toHaveBeenCalled();
+});
+
 test('cancel delegates immediately and edit mode initializes optional values', () => {
   const onCancel = jest.fn();
   render(<TaskEditor {...baseProps} onCancel={onCancel} mode={{ type: 'edit', defaultDate: task.date, task: {
