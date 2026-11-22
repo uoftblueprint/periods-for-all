@@ -275,3 +275,29 @@ test("S3-04's Clear buttons save mood and flow as not answered (null)", async ()
   expect(selected('Happy')).toBe(false);
   expect(selected('Light')).toBe(false);
 });
+
+test('Done after a failed route exit cancels the old guard before requesting a new exit', async () => {
+  const patchDailyLog = jest.fn<HealthStore['patchDailyLog']>().mockRejectedValue(new Error('offline'));
+  const { props, runGuard } = setupWithGuard({ store: createStore({ patchDailyLog }) });
+  fireEvent.press(await screen.findByLabelText('Sad'));
+  let result: boolean | undefined;
+  await act(async () => { void runGuard().then(value => { result = value; }); });
+  expect(screen.getByText('Not saved yet')).toBeTruthy();
+  patchDailyLog.mockImplementation(async (date, patch) => ({ ...blank(date), ...patch }));
+  await act(async () => fireEvent.press(screen.getByLabelText('Done')));
+  expect(props.onExit).toHaveBeenCalledTimes(1);
+  expect(result).toBe(false);
+});
+
+test('unmount during an in-flight exit save immediately cancels the route guard', async () => {
+  let finishSave!: (log: DailyLog) => void;
+  const patchDailyLog = jest.fn<HealthStore['patchDailyLog']>(() => new Promise(resolve => { finishSave = resolve; }));
+  const { runGuard } = setupWithGuard({ store: createStore({ patchDailyLog }) });
+  fireEvent.press(await screen.findByLabelText('Sad'));
+  let result: boolean | undefined;
+  await act(async () => { void runGuard().then(value => { result = value; }); });
+  await act(async () => screen.unmount());
+  expect(result).toBe(false); // cancellation must not wait for the network
+  await act(async () => finishSave({ ...blank(TODAY), mood: 'sad' }));
+  expect(result).toBe(false);
+});
