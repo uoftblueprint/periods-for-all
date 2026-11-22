@@ -52,6 +52,8 @@ export function DailyLogScreen({
   const [blocked, setBlockedState] = useState<BlockedExit | null>(null);
   const blockedRef = useRef<BlockedExit | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const mounted = useRef(true);
+  const pendingGuards = useRef(new Set<(saved: boolean) => void>());
   const scrollRef = useRef<ScrollView>(null);
   const { colors, fontScale } = appearance;
   const text = (size: number) => ({ color: colors.text, fontSize: size * fontScale });
@@ -65,9 +67,14 @@ export function DailyLogScreen({
   }
 
   async function leave(go: () => void, stay?: () => void) {
+    if (!mounted.current) return stay?.();
+    // A different exit (e.g. Done after a failed header Back) cancels the old guard
+    // before navigating, so the route can process the new action.
+    if (blockedRef.current && blockedRef.current.stay !== stay) setBlocked(null);
     if (log.phase !== 'ready') return go(); // nothing has been edited yet
     setLeaving(true);
     const saved = await log.autosave.flushAll();
+    if (!mounted.current) return stay?.();
     setLeaving(false);
     if (!saved) {
       setBlocked({ go, stay });
@@ -83,18 +90,31 @@ export function DailyLogScreen({
   // Hand the route a guard for header Back / swipe back. It always uses the latest `leave`.
   const leaveRef = useRef(leave);
   useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      for (const settle of pendingGuards.current) settle(false);
+      blockedRef.current = null;
+    };
+  }, []);
+  useEffect(() => {
     leaveRef.current = leave;
   });
   useEffect(() => {
     if (!registerExitGuard) return;
     const unregister = registerExitGuard(
       () => new Promise<boolean>((resolve) => {
-        void leaveRef.current(() => resolve(true), () => resolve(false));
+        const settle = (saved: boolean) => {
+          if (!pendingGuards.current.delete(settle)) return;
+          resolve(saved);
+        };
+        pendingGuards.current.add(settle);
+        void leaveRef.current(() => settle(true), () => settle(false));
       }),
     );
     return () => {
       unregister();
-      blockedRef.current?.stay?.(); // never leave the route waiting after the screen is gone
+      for (const settle of pendingGuards.current) settle(false);
       blockedRef.current = null;
     };
   }, [registerExitGuard]);
