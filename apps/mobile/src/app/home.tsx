@@ -36,6 +36,7 @@ export default function HomeRoute() {
       {error && <Text style={textStyle} accessibilityRole="alert">{error}</Text>}
       <AppButton appearance={appearance} label={busy ? 'Signing out…' : 'Sign out'} busy={busy} onPress={handleSignOut} />
       <Link style={textStyle} href="/calendar">Open calendar.</Link>
+      <Link style={textStyle} href="/period-setup">Open period setup.</Link>
       <Link style={textStyle} href="/settings">Open settings.</Link>
       <Link style={textStyle} href="/">Back to developer starting point</Link>
 
