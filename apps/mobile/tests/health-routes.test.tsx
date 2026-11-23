@@ -15,6 +15,7 @@ const mockCalendar = jest.fn((_props: any) => null);
 const mockDayDetails = jest.fn((_props: any) => null);
 const mockEditor = jest.fn((_props: any) => null);
 const mockLogScreen = jest.fn((_props: any) => null);
+let mockUseRealLogScreen = false; // full-flow tests use S3-06's real screen
 const mockNavigation = { dispatch: jest.fn() };
 // What the daily log passed to usePreventRemove on its latest render.
 const mockBlocker: { enabled: boolean; onBlocked: ((event: any) => void) | null } = { enabled: false, onBlocked: null };
@@ -46,7 +47,11 @@ jest.mock('@/features/health/health-routes', () => ({
   ...(jest.requireActual('@/features/health/health-routes') as object),
   DayDetails: (p: any) => mockDayDetails(p),
   PeriodDateEditor: (p: any) => mockEditor(p),
-  DailyLogScreen: (p: any) => mockLogScreen(p),
+  DailyLogScreen: (p: any) => {
+    if (!mockUseRealLogScreen) return mockLogScreen(p);
+    const { DailyLogScreen: Real } = jest.requireActual('@/features/health/daily-log-screen') as any;
+    return require('react').createElement(Real, p);
+  },
   localToday: () => '2026-11-15',
 }));
 
@@ -87,6 +92,7 @@ beforeEach(() => {
   mockFocus.current = null;
   mockBlocker.enabled = false;
   mockBlocker.onBlocked = null;
+  mockUseRealLogScreen = false;
   mockRouter.canGoBack.mockImplementation(() => true);
 });
 
@@ -157,6 +163,19 @@ test('coming back to the calendar reloads marks and day details', async () => {
   act(() => { mockFocus.current!(); });
   await waitFor(() => expect(store.getPeriodDays).toHaveBeenCalledTimes(2));
   await waitFor(() => expect(store.getDailyLog).toHaveBeenCalledTimes(2));
+});
+
+test('closing day details hides them until a day is picked again', async () => {
+  renderWithStore(<CalendarRoute />, fakeStore());
+  await waitFor(() => expect(mockDayDetails).toHaveBeenCalled());
+
+  act(() => { lastProps(mockDayDetails).onClose(); });
+  expect(await screen.findByText('Select a day to see what was recorded.')).toBeTruthy();
+
+  const before = mockDayDetails.mock.calls.length;
+  act(() => { lastProps(mockCalendar).onSelectDate('2026-11-03'); });
+  await waitFor(() => expect(mockDayDetails.mock.calls.length).toBeGreaterThan(before));
+  expect(lastProps(mockDayDetails).log.date).toBe('2026-11-03');
 });
 
 test('navigation passes only the month or date, never health answers', async () => {
@@ -260,28 +279,23 @@ test('back waits for pending saves, then leaves', async () => {
   expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack); // ...then the original back continues
 });
 
-test('if saving fails, the user stays and Retry leaves once it saves', async () => {
+test('if the screen reports unsaved changes, the user stays and the next back asks again', async () => {
   const guard = jest.fn<() => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
   await openDailyLog(guard);
 
-  swipeBack();
-  expect(await screen.findByText('Your changes couldn’t be saved.')).toBeTruthy();
+  await act(async () => { swipeBack(); }); // screen: save failed, user pressed Stay
   expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+  expect(mockBlocker.enabled).toBe(true);
+  expect(screen.queryByText(/couldn’t be saved/)).toBeNull(); // Retry/Stay is the screen's job, not the route's
 
-  fireEvent.press(screen.getByLabelText('Retry'));
+  await act(async () => { swipeBack(); }); // next try saves
   await waitFor(() => expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack));
   expect(guard).toHaveBeenCalledTimes(2);
 });
 
-test('if saving fails, Stay keeps the user on the log and back stays protected', async () => {
-  const guard = jest.fn(async () => { throw new Error('offline'); });
-  await openDailyLog(guard);
-
-  swipeBack();
-  expect(await screen.findByText('Your changes couldn’t be saved.')).toBeTruthy();
-  fireEvent.press(screen.getByLabelText('Stay'));
-
-  expect(screen.queryByText('Your changes couldn’t be saved.')).toBeNull();
+test('a crashing check is treated as unsaved, so the user stays', async () => {
+  await openDailyLog(jest.fn(async () => { throw new Error('offline'); }));
+  await act(async () => { swipeBack(); });
   expect(mockNavigation.dispatch).not.toHaveBeenCalled();
   expect(mockBlocker.enabled).toBe(true);
 });
@@ -290,4 +304,50 @@ test('with no unsaved-changes check registered, back leaves right away', async (
   await openDailyLog();
   swipeBack();
   await waitFor(() => expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack));
+});
+
+// ---- Full flow: route + S3-06's real daily log screen ----
+async function openRealDailyLog(store: HealthStore) {
+  mockUseRealLogScreen = true;
+  mockParams = { date: '2026-11-10' };
+  renderWithStore(<DailyLogRoute />, store);
+  return screen.findByLabelText('Daily Reflection');
+}
+
+test('full flow: swiping back right after typing saves the reflection, then leaves', async () => {
+  const store = fakeStore();
+  const input = await openRealDailyLog(store);
+  fireEvent.changeText(input, 'Tired today'); // no tap away, no waiting
+
+  await act(async () => { swipeBack(); });
+  await waitFor(() => expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack));
+  expect(store.patchDailyLog).toHaveBeenCalledWith('2026-11-10', { reflection: 'Tired today' });
+});
+
+test('full flow: a failed save keeps the user here with Retry/Stay; Retry saves, then leaves', async () => {
+  const patchDailyLog = jest.fn<HealthStore['patchDailyLog']>().mockRejectedValue(new Error('offline'));
+  await openRealDailyLog(fakeStore({ patchDailyLog }));
+  fireEvent.press(screen.getByLabelText('Sad'));
+
+  await act(async () => { swipeBack(); });
+  expect(await screen.findByText('Not saved yet')).toBeTruthy();
+  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+
+  patchDailyLog.mockImplementation(async (date, patch) => ({ ...emptyLog(date), ...patch }));
+  await act(async () => { fireEvent.press(screen.getByLabelText('Retry')); });
+  await waitFor(() => expect(mockNavigation.dispatch).toHaveBeenCalledWith(goBack));
+  expect(patchDailyLog).toHaveBeenLastCalledWith('2026-11-10', { mood: 'sad' });
+});
+
+test('full flow: Stay keeps the user and their answer, and back stays protected', async () => {
+  const patchDailyLog = jest.fn<HealthStore['patchDailyLog']>().mockRejectedValue(new Error('offline'));
+  await openRealDailyLog(fakeStore({ patchDailyLog }));
+  fireEvent.press(screen.getByLabelText('Sad'));
+
+  await act(async () => { swipeBack(); });
+  await act(async () => { fireEvent.press(await screen.findByLabelText('Stay')); });
+
+  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+  expect(mockBlocker.enabled).toBe(true);
+  expect(screen.getByLabelText('Sad').props.accessibilityState?.checked).toBe(true);
 });

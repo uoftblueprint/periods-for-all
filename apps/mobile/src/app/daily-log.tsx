@@ -26,7 +26,6 @@ export default function DailyLogRoute() {
   const navigation = useNavigation();
   const guard = useRef<ExitGuard | null>(null); // the screen's "save everything now"
   const checking = useRef(false); // ignores a second swipe while the first is still saving
-  const [failedExit, setFailedExit] = useState<NavigationAction | null>(null); // kept for Retry
   const [leaving, setLeaving] = useState<NavigationAction | null>(null);
 
   // The screen hands us its guard; calling the returned function removes it.
@@ -38,7 +37,6 @@ export default function DailyLogRoute() {
   async function tryToLeave(action: NavigationAction) {
     if (checking.current) return;
     checking.current = true;
-    setFailedExit(null);
     let saved: boolean;
     try {
       saved = guard.current ? await guard.current() : true;
@@ -46,8 +44,7 @@ export default function DailyLogRoute() {
       saved = false;
     }
     checking.current = false;
-    if (saved) setLeaving(action);
-    else setFailedExit(action);
+    if (saved) setLeaving(action); // otherwise stay: the screen already showed Retry / Stay
   }
 
   // Stops the screen closing until tryToLeave says it's safe.
@@ -57,14 +54,6 @@ export default function DailyLogRoute() {
   useEffect(() => {
     if (leaving) navigation.dispatch(leaving);
   }, [leaving, navigation]);
-
-  const saveFailed = failedExit && (
-    <View accessibilityRole="alert">
-      <Text style={text}>Your changes couldn’t be saved.</Text>
-      <AppButton appearance={appearance} label="Retry" onPress={() => { void tryToLeave(failedExit); }} />
-      <AppButton appearance={appearance} label="Stay" onPress={() => setFailedExit(null)} />
-    </View>
-  );
 
   if (!parseDate(date) || date > today) {
     return (
@@ -79,7 +68,6 @@ export default function DailyLogRoute() {
 
   return (
     <PreviewScreen title="Daily log" appearance={appearance}>
-      {saveFailed}
       <RequireHealthStore appearance={appearance}>
         {(store, userId) => (
           <DailyLogScreen

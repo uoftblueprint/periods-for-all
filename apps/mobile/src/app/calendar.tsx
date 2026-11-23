@@ -29,6 +29,7 @@ function CalendarContent({ store, appearance }: { store: HealthStore; appearance
   const [today] = useState(localToday);
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [selectedDate, setSelectedDate] = useState(today);
+  const [detailsClosed, setDetailsClosed] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const text = { color: appearance.colors.text, fontSize: 16 * appearance.fontScale };
 
@@ -60,12 +61,12 @@ function CalendarContent({ store, appearance }: { store: HealthStore; appearance
         selectedDate={selectedDate}
         today={today}
         periodDates={periodDays.data}
-        onSelectDate={setSelectedDate}
+        onSelectDate={(date) => { setSelectedDate(date); setDetailsClosed(false); }}
         onChangeMonth={setMonth}
         onEditPeriodDates={() => router.push({ pathname: '/period-edit', params: { month } })}
         appearance={appearance}
       />
-      {!selectedInMonth ? (
+      {!selectedInMonth || detailsClosed ? (
         <Text style={text}>Select a day to see what was recorded.</Text>
       ) : dayLog.status === 'loading' ? (
         <Loading label="Loading this day…" style={text} />
@@ -79,6 +80,7 @@ function CalendarContent({ store, appearance }: { store: HealthStore; appearance
           appearance={appearance}
           // Only the date goes in the URL, never health answers.
           onEdit={(date) => router.push({ pathname: '/daily-log', params: { date } })}
+          onClose={() => setDetailsClosed(true)}
         />
       )}
     </View>

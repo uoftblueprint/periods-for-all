@@ -6,30 +6,31 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { AppButton } from '@/components/app-button';
 import { addDays, daysInMonth, formatDate, parseMonth } from '@/features/calendar/calendar-dates';
 import type { Appearance } from '@/features/settings/appearance';
-import { createPlaceholderHealthStore, type HealthStore } from './s3-08-placeholders';
+import type { HealthStore } from './contracts';
+import { createDemoHealthStore } from './demo-health-store';
 
 // ---- Pieces owned by other Sprint 3 tickets: the ONE place routes get them from ----
 // While those tickets are unmerged, these point at s3-08-placeholders.tsx.
 // When one merges, change only its line here; the routes don't change.
 // TODO(S3-01): from './contracts'
-export type { DailyLog, DailyLogPatch, HealthStore, LocalDate } from './s3-08-placeholders';
-// TODO(S3-07): export { DayDetails } from '@/features/calendar/day-details';
-export { PlaceholderDayDetails as DayDetails } from './s3-08-placeholders';
-// TODO(S3-03): export { PeriodDateEditor } from '@/features/calendar/period-date-editor';
-export { PlaceholderPeriodDateEditor as PeriodDateEditor } from './s3-08-placeholders';
-// TODO(S3-06): export { DailyLogScreen } from './daily-log-screen';
-export { PlaceholderDailyLogScreen as DailyLogScreen } from './s3-08-placeholders';
+// ---- Pieces owned by other Sprint 3 tickets: the ONE place routes get them from ----
+export type { DailyLog, DailyLogPatch, HealthStore, LocalDate } from './contracts';
+export { DayDetails } from '@/features/calendar/day-details';
+export { PeriodDateEditor } from '@/features/calendar/period-date-editor';
+export { DailyLogScreen } from './daily-log-screen';
 
 // ---- Creating the store for one signed-in user ----
 export async function loadHealthStore(userId: string): Promise<HealthStore> {
   const mode = process.env.EXPO_PUBLIC_AUTH_MODE ?? 'demo';
-  // Demo accounts get a fresh in-memory store with made-up data only.
-  // TODO(S3-01): use the real demo store here.
-  if (mode !== 'supabase') return createPlaceholderHealthStore();
-  // TODO(S3-02): create the real store bound to `userId`, loaded lazily like
-  // supabase-auth in _layout.tsx. Until then, say so instead of showing fake data.
-  void userId;
-  throw new Error('Health records are not connected to the development backend yet (S3-02).');
+  // Demo accounts get a fresh in-memory store with made-up data only (S3-01).
+  if (mode !== 'supabase') return createDemoHealthStore();
+  // Real accounts: this user's Supabase rows only (S3-02). Loaded only here,
+  // like supabase-auth in _layout.tsx, so demo mode never loads Supabase.
+  const [{ supabase }, { createSupabaseHealthStore }] = await Promise.all([
+    import('@/lib/supabase'),
+    import('./supabase-health-store'),
+  ]);
+  return createSupabaseHealthStore(supabase, userId);
 }
 
 // ---- One store per signed-in user ----
