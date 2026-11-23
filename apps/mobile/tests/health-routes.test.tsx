@@ -2,10 +2,11 @@
 // load as empty, ignore late responses, and navigate with only a date or month.
 import { beforeEach, expect, jest, test } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { createDemoHealthStore } from '@/features/health/demo-health-store';
 import CalendarRoute from '@/app/calendar';
 import DailyLogRoute from '@/app/daily-log';
 import PeriodEditRoute from '@/app/period-edit';
-import { HealthStoreProvider } from '@/features/health/health-routes';
+import { HealthStoreProvider, useLoad } from '@/features/health/health-routes';
 import type { DailyLog, HealthStore } from '@/features/health/health-routes';
 
 const mockRouter = { push: jest.fn(), back: jest.fn(), replace: jest.fn(), setParams: jest.fn(), canGoBack: jest.fn(() => true) };
@@ -15,6 +16,7 @@ const mockCalendar = jest.fn((_props: any) => null);
 const mockDayDetails = jest.fn((_props: any) => null);
 const mockEditor = jest.fn((_props: any) => null);
 const mockLogScreen = jest.fn((_props: any) => null);
+let mockUseRealEditor = false;
 let mockUseRealLogScreen = false; // full-flow tests use S3-06's real screen
 const mockNavigation = { dispatch: jest.fn() };
 // What the daily log passed to usePreventRemove on its latest render.
@@ -46,7 +48,11 @@ jest.mock('@/features/calendar/month-calendar', () => ({ MonthCalendar: (p: any)
 jest.mock('@/features/health/health-routes', () => ({
   ...(jest.requireActual('@/features/health/health-routes') as object),
   DayDetails: (p: any) => mockDayDetails(p),
-  PeriodDateEditor: (p: any) => mockEditor(p),
+  PeriodDateEditor: (p: any) => {
+    if (!mockUseRealEditor) return mockEditor(p);
+    const { PeriodDateEditor: Real } = jest.requireActual('@/features/calendar/period-date-editor') as any;
+    return require('react').createElement(Real, p);
+  },
   DailyLogScreen: (p: any) => {
     if (!mockUseRealLogScreen) return mockLogScreen(p);
     const { DailyLogScreen: Real } = jest.requireActual('@/features/health/daily-log-screen') as any;
@@ -93,6 +99,7 @@ beforeEach(() => {
   mockBlocker.enabled = false;
   mockBlocker.onBlocked = null;
   mockUseRealLogScreen = false;
+  mockUseRealEditor = false;
   mockRouter.canGoBack.mockImplementation(() => true);
 });
 
@@ -350,4 +357,31 @@ test('full flow: Stay keeps the user and their answer, and back stays protected'
   expect(mockNavigation.dispatch).not.toHaveBeenCalled();
   expect(mockBlocker.enabled).toBe(true);
   expect(screen.getByLabelText('Sad').props.accessibilityState?.checked).toBe(true);
+});
+test('a changed load key never renders the previous date record', async () => {
+  const seen: Array<{ date: string; status: string; data?: string }> = [];
+  function Probe({ date }: { date: string }) {
+    const result = useLoad(date, async () => date);
+    seen.push({ date, status: result.status, ...(result.status === 'ready' ? { data: result.data } : {}) });
+    return null;
+  }
+  const view = render(<Probe date="2026-11-14" />);
+  await waitFor(() => expect(seen.at(-1)?.data).toBe('2026-11-14'));
+  view.rerender(<Probe date="2026-11-15" />);
+  await waitFor(() => expect(seen.at(-1)?.data).toBe('2026-11-15'));
+  expect(seen.filter((item) => item.date === '2026-11-15' && item.data === '2026-11-14')).toEqual([]);
+});
+
+test('real period editor saves to the demo store and the returned calendar reloads its marks', async () => {
+  mockUseRealEditor = true;
+  mockParams = { month: '2026-11' };
+  const store = createDemoHealthStore({ today: '2026-11-15', initialPeriodDays: ['2026-11-14'] });
+  const view = renderWithStore(<PeriodEditRoute />, store);
+  await waitFor(() => expect(screen.getByText('Save Dates')).toBeTruthy());
+  fireEvent.press(screen.getByLabelText(/November 15, 2026/));
+  fireEvent.press(screen.getByText('Save Dates'));
+  await waitFor(() => expect(mockRouter.back).toHaveBeenCalledTimes(1));
+  expect(await store.getPeriodDays('2026-11-01', '2026-11-30')).toEqual(['2026-11-14', '2026-11-15']);
+  view.rerender(<HealthStoreProvider userId="user-a" createStore={view.createStore}><CalendarRoute /></HealthStoreProvider>);
+  await waitFor(() => expect(lastProps(mockCalendar).periodDates).toEqual(['2026-11-14', '2026-11-15']));
 });

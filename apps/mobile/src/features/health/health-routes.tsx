@@ -9,11 +9,7 @@ import type { Appearance } from '@/features/settings/appearance';
 import type { HealthStore } from './contracts';
 import { createDemoHealthStore } from './demo-health-store';
 
-// ---- Pieces owned by other Sprint 3 tickets: the ONE place routes get them from ----
-// While those tickets are unmerged, these point at s3-08-placeholders.tsx.
-// When one merges, change only its line here; the routes don't change.
-// TODO(S3-01): from './contracts'
-// ---- Pieces owned by other Sprint 3 tickets: the ONE place routes get them from ----
+// Completed Sprint 3 components and shared contracts.
 export type { DailyLog, DailyLogPatch, HealthStore, LocalDate } from './contracts';
 export { DayDetails } from '@/features/calendar/day-details';
 export { PeriodDateEditor } from '@/features/calendar/period-date-editor';
@@ -123,23 +119,26 @@ export type LoadState<T> =
  * A failed load is reported as 'error', never as empty data.
  */
 export function useLoad<T>(key: string, load: () => Promise<T>): LoadState<T> & { retry: () => void } {
-  const [state, setState] = useState<LoadState<T>>({ status: 'loading' });
+  const [state, setState] = useState<{ key: string; attempt: number; value: LoadState<T> } | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
-    setState({ status: 'loading' });
+    setState({ key, attempt, value: { status: 'loading' } });
     // `load` is read from the render that changed `key`, which is the one it belongs to.
     load().then(
-      (data) => { if (active) setState({ status: 'ready', data }); },
-      () => { if (active) setState({ status: 'error' }); },
+      (data) => { if (active) setState({ key, attempt, value: { status: 'ready', data } }); },
+      () => { if (active) setState({ key, attempt, value: { status: 'error' } }); },
     );
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
-  return { ...state, retry };
+  // Effects run after render: hide a previous key's data immediately.
+  const current: LoadState<T> = state?.key === key && state.attempt === attempt
+    ? state.value : { status: 'loading' };
+  return { ...current, retry };
 }
 
 // ---- Date and navigation helpers ----

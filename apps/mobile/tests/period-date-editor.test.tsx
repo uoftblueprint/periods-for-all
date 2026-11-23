@@ -10,6 +10,7 @@ import { SymbolView } from 'expo-symbols';
 import {
   BackHandler,
   Modal,
+  Platform,
   type HardwareBackPressEvent,
 } from 'react-native';
 
@@ -531,4 +532,19 @@ test('dragging across a week adds each visited date to the draft once', async ()
     ],
     remove: [],
   }));
+});
+
+test('web never registers the unsupported hardware Back handler', () => {
+  const original = Platform.OS;
+  const listener = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => {
+    throw new Error('BackHandler is not supported on web');
+  });
+  try {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
+    setup();
+    expect(listener).not.toHaveBeenCalled();
+  } finally {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: original });
+    listener.mockRestore();
+  }
 });

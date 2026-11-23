@@ -3,7 +3,7 @@
 // the day card (S3-07) and navigation to the period editor and daily log.
 import { useCallback, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View, useWindowDimensions } from 'react-native';
 import { AppButton } from '@/components/app-button';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import {
@@ -26,6 +26,7 @@ export default function CalendarRoute() {
 }
 
 function CalendarContent({ store, appearance }: { store: HealthStore; appearance: Appearance }) {
+  const { height } = useWindowDimensions();
   const [today] = useState(localToday);
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [selectedDate, setSelectedDate] = useState(today);
@@ -73,15 +74,18 @@ function CalendarContent({ store, appearance }: { store: HealthStore; appearance
       ) : dayLog.status === 'error' ? (
         <Failed message="We couldn’t load this day." onRetry={dayLog.retry} appearance={appearance} />
       ) : (
-        <DayDetails
-          log={dayLog.data}
-          isPeriodDay={periodDays.data.includes(selectedDate)}
-          today={today}
-          appearance={appearance}
-          // Only the date goes in the URL, never health answers.
-          onEdit={(date) => router.push({ pathname: '/daily-log', params: { date } })}
-          onClose={() => setDetailsClosed(true)}
-        />
+        // The card uses percentage heights and needs a bounded host inside this ScrollView.
+        <View style={{ height: Math.max(480, height - 120), justifyContent: 'flex-end' }}>
+          <DayDetails
+            log={dayLog.data}
+            isPeriodDay={periodDays.data.includes(selectedDate)}
+            today={today}
+            appearance={appearance}
+            // Only the date goes in the URL, never health answers.
+            onEdit={(date) => router.push({ pathname: '/daily-log', params: { date } })}
+            onClose={() => setDetailsClosed(true)}
+          />
+        </View>
       )}
     </View>
   );
