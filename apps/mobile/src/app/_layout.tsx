@@ -6,6 +6,7 @@ import { createSessionAuth } from '@/features/auth/session-auth';
 import { HealthStoreProvider, loadHealthStore } from '@/features/health/health-routes';
 import { OnboardingGate } from '@/features/onboarding/onboarding-gate';
 import { OnboardingShell } from '@/features/onboarding/onboarding-shell';
+import { PeriodSetupOffer } from '@/features/onboarding/period-setup-offer';
 import { deviceCompletionStore } from '@/features/onboarding/device-completion-store';
 import { getAppearance } from '@/features/settings/appearance';
 import { SettingsProvider, useSettings } from '@/features/settings/settings-provider';
@@ -54,7 +55,9 @@ function AuthRoutes({ session }: { session: ReturnType<typeof createSessionAuth>
     previousStatus.current = auth.status;
   }, [auth.status]);
 
-  const navigator = <HealthStoreProvider userId={healthUserId} createStore={loadHealthStore}>
+  // S3-10: `offerPeriodSetup` is true once display setup is done and home is showing.
+  const navigator = (offerPeriodSetup: boolean) => <HealthStoreProvider userId={healthUserId} createStore={loadHealthStore}>
+    <PeriodSetupOffer active={offerPeriodSetup} />
     <Stack screenOptions={{
       headerTitle: 'Periods for All · Development',
       animation: appearance.reduceMotion ? 'none' : 'default',
@@ -71,6 +74,8 @@ function AuthRoutes({ session }: { session: ReturnType<typeof createSessionAuth>
         <Stack.Screen name="calendar" />
         <Stack.Screen name="period-edit" />
         <Stack.Screen name="daily-log" />
+        {/* S3-10: optional period setup, opened after display setup or from home. */}
+        <Stack.Screen name="period-setup" />
       </Stack.Protected>
     </Stack>
   </HealthStoreProvider>;
@@ -90,9 +95,9 @@ function AuthRoutes({ session }: { session: ReturnType<typeof createSessionAuth>
     completionStore={deviceCompletionStore}
     render={(model) => <OnboardingShell
       model={model}
-      navigator={navigator}
+      navigator={navigator(model.view === 'home' && pathname === '/home')}
       appearance={appearance}
-      bypass={!['/login', '/home', '/settings'].includes(pathname)}
+      bypass={!['/login', '/home', '/settings', '/period-setup'].includes(pathname)}
       sessionId={identity.generation}
       workKey={identity.key}
       getWorkKey={session.getWorkKey}
