@@ -1,7 +1,6 @@
 import { View, Text, TextInput } from 'react-native';
-import type { Appearance } from '@/features/settings/appearance';
 import type { TextFieldProps } from '../foundation/contracts';
-import { Fonts, Spacing } from '../constants/theme';
+import { Colors, Fonts, Spacing } from '../constants/theme';
 
 /**
  * Renders a labeled, controlled text input with optional validation feedback.
@@ -13,13 +12,20 @@ import { Fonts, Spacing } from '../constants/theme';
  * @TextfieldProps error - Optional error message to display below the input field.
  * @TextfieldProps secureTextEntry - Boolean indicating if the input should be masked (for passwords).
  * @TextfieldProps keyboardType - The type of keyboard to display. It is either 'default', 'email-address'.
+ * @TextfieldProps maxLength - The maximum number of characters that can be entered in the input field.
+ * @TextfieldProps multiline - Boolean indicating if the input should be a multi-line text area.
+ * @TextfieldProps onBlur - Callback function to handle the input field losing focus.
  * @returns The field container, including its label, input, and optional error.
+ * @TextfieldProps appearance - The appearance of the input field.
  */
 export function TextField({
-    label, value, onChangeText, error, secureTextEntry, keyboardType, editable, appearance,
+    label, value, onChangeText, error, secureTextEntry, keyboardType, editable, maxLength, multiline, onBlur, placeholder,
     autoCorrect = keyboardType === 'email-address' || secureTextEntry ? false : true,
     autoCapitalize = keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences',
-}: TextFieldProps & { appearance?: Appearance }) {
+    appearance,
+}: TextFieldProps) {
+    const colors = appearance?.colors ?? Colors.light;
+    const fontSize = 14 * (appearance?.fontScale ?? 1);
 
     return (
         <View style={{
@@ -27,23 +33,23 @@ export function TextField({
         }}>
             <Text style={{
                 fontFamily: Fonts.sans,
-                color: appearance?.colors.text,
-                fontSize: appearance ? 16 * appearance.fontScale : undefined,
+                color: colors.text,
+                fontSize,
             }}
             >
                 {label}
             </Text>
             <TextInput style={{
                 borderWidth: 1,
-                borderColor: error ? 'red' : (appearance?.colors.textSecondary ?? 'gray'),
-                color: appearance?.colors.text,
-                backgroundColor: appearance?.colors.backgroundElement,
-                fontSize: appearance ? 16 * appearance.fontScale : undefined,
+                borderColor: error ? 'red' : colors.textSecondary,
+                color: colors.text,
+                backgroundColor: colors.background,
+                fontSize,
                 padding: Spacing.one,
                 borderRadius: 4,
             }}
-                placeholderTextColor={appearance?.colors.textSecondary}
-                placeholder={`Enter ${label.toLowerCase()}`}
+                placeholder={placeholder || `Enter ${label.toLowerCase()}`}
+                placeholderTextColor={colors.textSecondary}
                 onChangeText={onChangeText}
                 autoCorrect={autoCorrect}
                 autoCapitalize={autoCapitalize}
@@ -51,10 +57,13 @@ export function TextField({
                 value={value}
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
+                maxLength={maxLength}
+                multiline={multiline}
                 accessibilityLabel={label}
                 accessibilityHint={`Input field for ${label}`}
+                onBlur={onBlur}
             />
-            {error ? <Text style={appearance && { color: appearance.colors.text, fontSize: 14 * appearance.fontScale }} accessibilityRole="alert">{error}</Text> :null}
+            {error ? <Text accessibilityRole="alert" style={{ color: colors.text, fontSize }}>{error}</Text> :null}
         </View>
     )
 }
