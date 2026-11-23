@@ -9,6 +9,7 @@ import {
 import {
   BackHandler,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -123,6 +124,7 @@ export function PeriodDateEditor(props: PeriodDateEditorProps) {
   }, [props.onCancel]);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
