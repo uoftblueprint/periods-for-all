@@ -11,6 +11,11 @@ export function shiftDay(date: LocalDate, delta: -1 | 1): LocalDate {
   return formatDate(next, next.day);
 }
 
+// the device's local calendar day at the given moment
+export function localDateOf(time: Date): LocalDate {
+  return formatDate({ year: time.getFullYear(), month: time.getMonth() + 1 }, time.getDate());
+}
+
 export const isOnOrAfter = (date: LocalDate, other: LocalDate) => date >= other;
 
 // example: Fri, Oct 30
