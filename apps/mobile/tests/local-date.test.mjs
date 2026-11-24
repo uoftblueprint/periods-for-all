@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isOnOrAfter, shiftDay, shortDayTitle } from '../src/features/health/local-date.ts';
+import { isOnOrAfter, localDateOf, shiftDay, shortDayTitle } from '../src/features/health/local-date.ts';
 
 for (const [from, delta, expected] of [
   ['2026-11-07', 1, '2026-11-08'],
@@ -32,4 +32,10 @@ test('isOnOrAfter compares calendar days', () => {
 test('shortDayTitle matches the Figma header format', () => {
   assert.equal(shortDayTitle({ year: 2026, month: 10, day: 30 }), 'Fri, Oct 30');
   assert.equal(shortDayTitle({ year: 2026, month: 11, day: 7 }), 'Sat, Nov 7');
+});
+
+test('localDateOf uses the device clock, not UTC', () => {
+  assert.equal(localDateOf(new Date(2026, 10, 22, 23, 59)), '2026-11-22');
+  assert.equal(localDateOf(new Date(2026, 10, 23, 0, 0)), '2026-11-23');
+  assert.equal(localDateOf(new Date(2027, 0, 1, 0, 30)), '2027-01-01');
 });
