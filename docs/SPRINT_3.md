@@ -143,3 +143,24 @@ integration, or the auth/settings providers.
 
 If a contract must change after step 1, notify the store, screen, and integration
 owners before changing it so dependent branches can update together.
+
+## S3-08 integration review (2026-11-23)
+
+PR #87 connects the completed MonthCalendar, DayDetails, PeriodDateEditor and
+DailyLogScreen to the authenticated per-user store. Route parameters contain
+only dates/months; calendar focus refreshes saved records. Supabase mode uses
+the existing user-bound SupabaseHealthStore; demo mode uses an in-memory store.
+
+Review fixes hide prior-date data immediately when a load key changes, skip
+unsupported web BackHandler registration, and give the percentage-height day
+card a bounded host within the calendar's scrolling page. The two data/web
+regression tests failed before their fixes and passed afterward. A route-level
+test drives the real period editor against DemoHealthStore, saves a date,
+returns to Calendar and verifies reloaded marks. Existing real daily-log route
+tests cover pending-save Back, failed-save Retry, and Stay.
+
+Validation: TypeScript typecheck; 310 service tests; 247 component tests.
+These are automated checks, not a physical-device or hosted-backend check.
+Real development Supabase persistence across sign-out/reopen, account switching
+on a device, and phone/iPad layout checks at largest text size and both themes
+still need manual verification. Keep #76 open for those acceptance checks.
